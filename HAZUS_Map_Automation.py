@@ -67,10 +67,10 @@ class MainFrame(wx.Frame):
                                           size=wx.Size(460, 75))
 
         # Set up the menu to choose a directory from the system
-        dirDlgBtn = wx.Button(self.mainPanel, label="Choose Output Directory", pos=wx.Point(20, 140),
-                              size=wx.Size(200, -1))
+        self.output_directory_dialog_button = wx.Button(self.mainPanel, label="Choose Output Directory",
+                                                        pos=wx.Point(20, 140), size=wx.Size(200, -1))
         self.output_directory = ""
-        # dirDlgBtn.Bind(wx.EVT_BUTTON, self.onDir)
+        self.output_directory_dialog_button.Bind(wx.EVT_BUTTON, self.select_output_directory)
 
         # Create an empty text box to input the name of the HAZUS Server
         self.hazus_server_label = wx.StaticText(self.mainPanel, -1, "Select your HAZUS Server", pos=wx.Point(20, 210))
@@ -114,7 +114,7 @@ class MainFrame(wx.Frame):
                                                     size=wx.Size(80, 60))
 
 
-        # Create a button that creates the incident directory and point shapefile
+        # Create a button that runs the script
         self.create_maps = wx.Button(self.mainPanel, label="Go!", pos=wx.Point(20, 560),
                                         size=wx.Size(150, 60))
         # self.Bind(wx.EVT_BUTTON, self.onCreateIncident, self.createIncident)
@@ -124,10 +124,23 @@ class MainFrame(wx.Frame):
         # self.Bind(wx.EVT_BUTTON, self.OnReset, self.resetButton)
 
         self.Show()
+        
+    # 2. Select output directory
+    def select_output_directory(self, event):
+        """This function allows the user to choose an output directory and then generates a list
+        of available SQL Server instances for the user to select."""
+        dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.output_directory = dlg.GetPath()
+            self.sb.SetStatusText("You chose %s" % self.output_directory)
+            # self.logger.info("Incident directory: " + self.output_directory)
+        dlg.Destroy()
+        self.list_sql_servers()
 
-# 2. Select output directory
 
-# 3. Select HAZUS SQL Server instance
+    # 3. Select HAZUS SQL Server instance
+    def list_sql_servers(self):
+        pass
 
 # 4. Select HAZUS study region (SQL Server database)
 

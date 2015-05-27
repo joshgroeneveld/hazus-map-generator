@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 05.21.2015
+# Updated On: 05.27.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -49,7 +49,7 @@ class MainFrame(wx.Frame):
         self.output_directory_staticbox = wx.StaticBox(self.mainPanel, -1, "Choose the output directory",
                                                 pos=wx.Point(8, 120), size=wx.Size(476, 55))
 
-        # the incident type box
+        # the server info box
         self.serverinfo_staticbox = wx.StaticBox(self.mainPanel, -1, "Server Information",
                                                 pos=wx.Point(8, 185), size=wx.Size(476, 340))
 
@@ -125,13 +125,13 @@ class MainFrame(wx.Frame):
 
         self.Show()
 
-# 2. Select HAZUS SQL Server instance
+# 2. Select output directory
 
-# 3. Select HAZUS study region (SQL Server database)
+# 3. Select HAZUS SQL Server instance
 
-# 4. Choose map or maps from list of templates and add to list of maps to create
+# 4. Select HAZUS study region (SQL Server database)
 
-# 5. Select output directory
+# 5. Choose map or maps from list of templates and add to list of maps to create
 
 # 6. Run the script
 # 6a. Create the directory structure in output directory

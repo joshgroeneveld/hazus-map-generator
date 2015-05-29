@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 05.27.2015
+# Updated On: 05.29.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -18,8 +18,6 @@ import wx
 import os
 import logging
 import shutil
-
-# pseudo-code
 
 # 1. Initialize wxpython window
 class MainFrame(wx.Frame):
@@ -72,22 +70,18 @@ class MainFrame(wx.Frame):
         self.output_directory = ""
         self.output_directory_dialog_button.Bind(wx.EVT_BUTTON, self.select_output_directory)
 
-        # Create an empty text box to input the name of the HAZUS Server
-        self.hazus_server_label = wx.StaticText(self.mainPanel, -1, "Select your HAZUS Server", pos=wx.Point(20, 210))
-        self.hazus_server_choices = ["Server 1", "Server 2"]
+        # Create an text box to input the name of the HAZUS Server
+        self.hazus_server_label = wx.StaticText(self.mainPanel, -1, "HAZUS Server", pos=wx.Point(20, 210))
+        self.hazus_server_name = str(os.environ['COMPUTERNAME']) + "\\HAZUSPLUSSRVR"
 
-        self.hazus_server_textbox = wx.ComboBox(self.mainPanel, -1, "",
-                                       choices=self.hazus_server_choices, pos=wx.Point(175, 210), size=wx.Size(250, 25))
-        self.hazus_server = ""
+        self.hazus_server_textbox = wx.TextCtrl(self.mainPanel, -1, value=self.hazus_server_name,
+                                                pos=wx.Point(175, 210), size=wx.Size(275, 25))
 
-        # Create a drop down menu showing potential incident types
-        self.hazus_db_list = wx.StaticText(self.mainPanel, -1, "Select your Study Region", pos=wx.Point(20, 245))
-        self.db_choices = ["Study Region 1", "Study Region 2"]
-        self.db_list = wx.ComboBox(self.mainPanel, -1, "", choices=self.db_choices,
-                                         pos=wx.Point(175, 245), size=wx.Size(250, 25))
-        self.hazus_db = ""
-
-        # self.Bind(wx.EVT_COMBOBOX, self.onIncidentType, self.incidentTypes)
+        # Create a text box to input the HAZUS Study Region Name
+        self.hazus_db_list = wx.StaticText(self.mainPanel, -1, "Study Region", pos=wx.Point(20, 245))
+        self.hazus_db = "Type Study Region Name Here"
+        self.hazus_db_textbox = wx.TextCtrl(self.mainPanel, -1, value=self.hazus_db, pos=wx.Point(175, 245),
+                                            size=wx.Size(250, 25))
 
         self.map_selection_label = wx.StaticText(self.mainPanel, -1, "Select the maps to create",
                                              pos=wx.Point(20, 280), size=wx.Size(300, 50))
@@ -117,7 +111,7 @@ class MainFrame(wx.Frame):
         # Create a button that runs the script
         self.create_maps = wx.Button(self.mainPanel, label="Go!", pos=wx.Point(20, 560),
                                         size=wx.Size(150, 60))
-        # self.Bind(wx.EVT_BUTTON, self.onCreateIncident, self.createIncident)
+        # self.Bind(wx.EVT_BUTTON, self.oncreatemaps, self.createmaps)
 
         # Create a button that resets the form
         self.reset_button = wx.Button(self.mainPanel, label="Reset", pos=wx.Point(200, 560), size=wx.Size(150, 60))
@@ -133,33 +127,25 @@ class MainFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.output_directory = dlg.GetPath()
             self.sb.SetStatusText("You chose %s" % self.output_directory)
-            # self.logger.info("Incident directory: " + self.output_directory)
+            # self.logger.info("Output directory: " + self.output_directory)
         dlg.Destroy()
-        self.list_sql_servers()
 
+# 3. Choose map or maps from list of templates and add to list of maps to create
 
-    # 3. Select HAZUS SQL Server instance
-    def list_sql_servers(self):
-        pass
+# 4. Run the script
+# 4a. Create the directory structure in output directory
 
-# 4. Select HAZUS study region (SQL Server database)
+# 4.b Extract data from SQL Server
 
-# 5. Choose map or maps from list of templates and add to list of maps to create
+# 4.c Create table queries to get only the data we need (can probably be combined with 6.b
 
-# 6. Run the script
-# 6a. Create the directory structure in output directory
+# 4.d Join data to census geography as needed
 
-# 6.b Extract data from SQL Server
+# 4.e For each map, point .lyr templates in map to new data
 
-# 6.c Create table queries to get only the data we need (can probably be combined with 6.b
+# 4.f Export maps as PDF and JPEG
 
-# 6.d Join data to census geography as needed
-
-# 6.e For each map, point .lyr templates in map to new data
-
-# 6.f Export maps as PDF and JPEG
-
-# 7. View log files if desired
+# 5. View log files if desired
 
 try:
     app = wx.App(False)

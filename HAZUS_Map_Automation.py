@@ -29,7 +29,7 @@ class MainFrame(wx.Frame):
         if self.logfile is None:
             self.logfile = 'C:\\Temp\\HAZUS_Map_Generator_Log.txt'
 
-        # self.__initlogging()
+        self.__initlogging()
 
         self.mainPanel = wx.Panel(self)
 
@@ -37,7 +37,7 @@ class MainFrame(wx.Frame):
 
         self.sb = self.CreateStatusBar()
         self.sb.SetStatusText("Please select your output directory.")
-        # self.logger.info("Script initiated")
+        self.logger.info("Script initiated")
 
         # the welcome box
         self.welcome_sizerbox = wx.StaticBox(self.mainPanel, -1, "Welcome to the HAZUS Map Generator",
@@ -107,7 +107,6 @@ class MainFrame(wx.Frame):
         self.remove_maps_from_selection = wx.Button(self.mainPanel, label="Remove <--", pos=wx.Point(210, 420),
                                                     size=wx.Size(80, 60))
 
-
         # Create a button that runs the script
         self.create_maps = wx.Button(self.mainPanel, label="Go!", pos=wx.Point(20, 560),
                                         size=wx.Size(150, 60))
@@ -127,25 +126,34 @@ class MainFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.output_directory = dlg.GetPath()
             self.sb.SetStatusText("You chose %s" % self.output_directory)
-            # self.logger.info("Output directory: " + self.output_directory)
+            self.logger.info("Output directory: " + self.output_directory)
         dlg.Destroy()
 
-# 3. Choose map or maps from list of templates and add to list of maps to create
+    # 3. Choose map or maps from list of templates and add to list of maps to create
+    #  4. Run the script
+    #  4a. Create the directory structure in output directory
+    #  4.b Extract data from SQL Server
+    #  4.c Create table queries to get only the data we need
+    #  4.d Join data to census geography as needed
+    #  4.e For each map, point .lyr templates in map to new data
+    #  4.f Export maps as PDF and JPEG
+    #  5. View log files if desired
+    def __initlogging(self):
+        """Initialize a log file to view all of the settings and error information each time
+        the script runs."""
+        self.logger = logging.getLogger("SitRepIncidentMapLog")
+        self.logger.setLevel(logging.DEBUG)
 
-# 4. Run the script
-# 4a. Create the directory structure in output directory
+        # Create a file handler
+        ch = logging.FileHandler(self.logfile)
+        ch.setLevel(logging.DEBUG)
 
-# 4.b Extract data from SQL Server
-
-# 4.c Create table queries to get only the data we need (can probably be combined with 6.b
-
-# 4.d Join data to census geography as needed
-
-# 4.e For each map, point .lyr templates in map to new data
-
-# 4.f Export maps as PDF and JPEG
-
-# 5. View log files if desired
+        # Format the logfile entries
+        formatter = logging.Formatter("[%(asctime)s][%(name)s:%(lineno)d][%(levelname)s] %(message)s")
+        # add formatter to ch
+        ch.setFormatter(formatter)
+        # add ch to logger
+        self.logger.addHandler(ch)
 
 try:
     app = wx.App(False)

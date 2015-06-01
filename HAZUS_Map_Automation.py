@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 05.27.2015
+# Updated On: 05.28.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -18,8 +18,7 @@ import wx
 import os
 import logging
 import shutil
-
-# pseudo-code
+import sqlinstances
 
 # 1. Initialize wxpython window
 class MainFrame(wx.Frame):
@@ -129,18 +128,22 @@ class MainFrame(wx.Frame):
     def select_output_directory(self, event):
         """This function allows the user to choose an output directory and then generates a list
         of available SQL Server instances for the user to select."""
+        print "Creating output dialog"
         dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE)
+        dlg.Show()
+        print "Directory selected"
         if dlg.ShowModal() == wx.ID_OK:
             self.output_directory = dlg.GetPath()
             self.sb.SetStatusText("You chose %s" % self.output_directory)
             # self.logger.info("Incident directory: " + self.output_directory)
         dlg.Destroy()
-        self.list_sql_servers()
+        print "Folder picker closed"
+        self.hazus_server_choices = sqlinstances.list_sql_servers(self)
+        print self.hazus_server_choices
 
 
     # 3. Select HAZUS SQL Server instance
-    def list_sql_servers(self):
-        pass
+
 
 # 4. Select HAZUS study region (SQL Server database)
 

@@ -19,6 +19,7 @@ import os
 import logging
 import shutil
 import sqlinstances
+import pyodbc
 
 # 1. Initialize wxpython window
 class MainFrame(wx.Frame):
@@ -79,6 +80,8 @@ class MainFrame(wx.Frame):
                                              pos=wx.Point(175, 210), size=wx.Size(250, 25))
         self.hazus_server = ""
 
+        self.hazus_server_list.Bind(wx.EVT_COMBOBOX, self.select_hazus_server)
+
         # Create a drop down menu to select the HAZUS Study Region
         self.hazus_db_list = wx.StaticText(self.mainPanel, -1, "Select your Study Region", pos=wx.Point(20, 245))
         self.db_choices = ["Study Region 1", "Study Region 2"]
@@ -138,7 +141,25 @@ class MainFrame(wx.Frame):
             self.hazus_server_list.Append(server)
         self.sb.SetStatusText("Please select your HAZUS Server")
 
-# 3. Select HAZUS SQL Server instance
+    # 3. Select HAZUS SQL Server instance
+    def select_hazus_server(self, event):
+        """This function allows the user to select a HAZUS server (SQL Server instance) from a
+        drop down list, and then populates a drop down list of HAZUS study regions (databases)
+        for the user to select."""
+        self.hazus_server = self.hazus_server_list.GetValue()
+        self.sb.SetStatusText("You chose %s" % self.hazus_server)
+        self.logger.info("HAZUS Server: " + str(self.hazus_server))
+
+        # Populate the drop down menu of databases in the server
+        cxn = pyodbc.connect('DRIVER={SQL Server};SERVER=%s;DATABASE=master;UID="hazuspuser";'
+                             'PASSWORD="gohazusplus_01";Trusted_Connection=yes' % str(self.hazus_server))
+        cursor = cxn.cursor()
+        cursor.execute("select name from sys.databases")
+        rows = cursor.fetchall()
+        self.db_list.Clear()
+        for row in rows:
+            self.db_list.Append(row[0])
+        self.sb.SetStatusText("Please select your HAZUS Study Region")
 
 
 # 4. Select HAZUS study region (SQL Server database)

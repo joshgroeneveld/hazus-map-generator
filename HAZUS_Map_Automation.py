@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 05.28.2015
+# Updated On: 06.02.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -30,7 +30,7 @@ class MainFrame(wx.Frame):
         if self.logfile is None:
             self.logfile = 'C:\\Temp\\HAZUS_Map_Generator_Log.txt'
 
-        # self.__initlogging()
+        self.__initlogging()
 
         self.mainPanel = wx.Panel(self)
 
@@ -38,7 +38,7 @@ class MainFrame(wx.Frame):
 
         self.sb = self.CreateStatusBar()
         self.sb.SetStatusText("Please select your output directory.")
-        # self.logger.info("Script initiated")
+        self.logger.info("Script initiated")
 
         # the welcome box
         self.welcome_sizerbox = wx.StaticBox(self.mainPanel, -1, "Welcome to the HAZUS Map Generator",
@@ -71,22 +71,20 @@ class MainFrame(wx.Frame):
         self.output_directory = ""
         self.output_directory_dialog_button.Bind(wx.EVT_BUTTON, self.select_output_directory)
 
-        # Create an empty text box to input the name of the HAZUS Server
+        # Create an drop down menu to select the name of the HAZUS Server
         self.hazus_server_label = wx.StaticText(self.mainPanel, -1, "Select your HAZUS Server", pos=wx.Point(20, 210))
         self.hazus_server_choices = ["Server 1", "Server 2"]
 
-        self.hazus_server_textbox = wx.ComboBox(self.mainPanel, -1, "",
-                                       choices=self.hazus_server_choices, pos=wx.Point(175, 210), size=wx.Size(250, 25))
+        self.hazus_server_list = wx.ComboBox(self.mainPanel, -1, "", choices=self.hazus_server_choices,
+                                             pos=wx.Point(175, 210), size=wx.Size(250, 25))
         self.hazus_server = ""
 
-        # Create a drop down menu showing potential incident types
+        # Create a drop down menu to select the HAZUS Study Region
         self.hazus_db_list = wx.StaticText(self.mainPanel, -1, "Select your Study Region", pos=wx.Point(20, 245))
         self.db_choices = ["Study Region 1", "Study Region 2"]
         self.db_list = wx.ComboBox(self.mainPanel, -1, "", choices=self.db_choices,
-                                         pos=wx.Point(175, 245), size=wx.Size(250, 25))
+                                          pos=wx.Point(175, 245), size=wx.Size(250, 25))
         self.hazus_db = ""
-
-        # self.Bind(wx.EVT_COMBOBOX, self.onIncidentType, self.incidentTypes)
 
         self.map_selection_label = wx.StaticText(self.mainPanel, -1, "Select the maps to create",
                                              pos=wx.Point(20, 280), size=wx.Size(300, 50))
@@ -112,11 +110,10 @@ class MainFrame(wx.Frame):
         self.remove_maps_from_selection = wx.Button(self.mainPanel, label="Remove <--", pos=wx.Point(210, 420),
                                                     size=wx.Size(80, 60))
 
-
         # Create a button that runs the script
         self.create_maps = wx.Button(self.mainPanel, label="Go!", pos=wx.Point(20, 560),
                                         size=wx.Size(150, 60))
-        # self.Bind(wx.EVT_BUTTON, self.onCreateIncident, self.createIncident)
+        # self.Bind(wx.EVT_BUTTON, self.oncreatemaps, self.createmaps)
 
         # Create a button that resets the form
         self.reset_button = wx.Button(self.mainPanel, label="Reset", pos=wx.Point(200, 560), size=wx.Size(150, 60))
@@ -128,21 +125,20 @@ class MainFrame(wx.Frame):
     def select_output_directory(self, event):
         """This function allows the user to choose an output directory and then generates a list
         of available SQL Server instances for the user to select."""
-        print "Creating output dialog"
         dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE)
         dlg.Show()
-        print "Directory selected"
         if dlg.ShowModal() == wx.ID_OK:
             self.output_directory = dlg.GetPath()
             self.sb.SetStatusText("You chose %s" % self.output_directory)
-            # self.logger.info("Incident directory: " + self.output_directory)
+            self.logger.info("Output directory: " + self.output_directory)
         dlg.Destroy()
-        print "Folder picker closed"
         self.hazus_server_choices = sqlinstances.list_sql_servers(self)
-        print self.hazus_server_choices
+        self.hazus_server_list.Clear()
+        for server in self.hazus_server_choices:
+            self.hazus_server_list.Append(server)
+        self.sb.SetStatusText("Please select your HAZUS Server")
 
-
-    # 3. Select HAZUS SQL Server instance
+# 3. Select HAZUS SQL Server instance
 
 
 # 4. Select HAZUS study region (SQL Server database)
@@ -163,6 +159,22 @@ class MainFrame(wx.Frame):
 # 6.f Export maps as PDF and JPEG
 
 # 7. View log files if desired
+    def __initlogging(self):
+        """Initialize a log file to view all of the settings and error information each time
+        the script runs."""
+        self.logger = logging.getLogger("SitRepIncidentMapLog")
+        self.logger.setLevel(logging.DEBUG)
+
+        # Create a file handler
+        ch = logging.FileHandler(self.logfile)
+        ch.setLevel(logging.DEBUG)
+
+        # Format the logfile entries
+        formatter = logging.Formatter("[%(asctime)s][%(name)s:%(lineno)d][%(levelname)s] %(message)s")
+        # add formatter to ch
+        ch.setFormatter(formatter)
+        # add ch to logger
+        self.logger.addHandler(ch)
 
 try:
     app = wx.App(False)

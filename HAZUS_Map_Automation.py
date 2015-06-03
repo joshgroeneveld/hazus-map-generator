@@ -90,18 +90,21 @@ class MainFrame(wx.Frame):
         self.hazus_db = ""
 
         self.map_selection_label = wx.StaticText(self.mainPanel, -1, "Select the maps to create",
-                                             pos=wx.Point(20, 280), size=wx.Size(300, 50))
+                                             pos=wx.Point(20, 280), size=wx.Size(300, 25))
         self.db_list.Bind(wx.EVT_COMBOBOX, self.select_hazus_db)
 
         # Create a list box with all of the potential maps that the user can select
-        self.map_choices = ["Map 1", "Map 2", "Map 3", "Map 4", "Map 5", "Map 6", "Map 7", "Map 8", "Map 9",
-                            "Map 10", "Map 11", "Map 12"]
+        self.map_choices = ["Direct Economic Loss", "Shelter Needs", "Elderly Populations", "Utility Damage",
+                            "Building Inspection Needs", "Estimated Debris", "Demographic Distribution",
+                            "Highway Infrastructure Damage", "Impaired Hospitals", "Water Infrastructure Damage",
+                            "Search and Rescue Needs", "Special Needs Populations"]
+
         self.map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(20, 305), choices=self.map_choices,
                                    size=wx.Size(175, 200))
 
         # Create a list box to show the selected maps
         self.selected_map_label = wx.StaticText(self.mainPanel, -1, "Selected maps", pos=wx.Point(300, 280),
-                                                size=wx.Size(300, 50))
+                                                size=wx.Size(300, 25))
 
         self.selected_map_choices = [""]
         self.selected_map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(300, 305),

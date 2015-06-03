@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 06.02.2015
+# Updated On: 06.03.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -91,6 +91,7 @@ class MainFrame(wx.Frame):
 
         self.map_selection_label = wx.StaticText(self.mainPanel, -1, "Select the maps to create",
                                              pos=wx.Point(20, 280), size=wx.Size(300, 50))
+        self.db_list.Bind(wx.EVT_COMBOBOX, self.select_hazus_db)
 
         # Create a list box with all of the potential maps that the user can select
         self.map_choices = ["Map 1", "Map 2", "Map 3", "Map 4", "Map 5", "Map 6", "Map 7", "Map 8", "Map 9",
@@ -105,6 +106,10 @@ class MainFrame(wx.Frame):
         self.selected_map_choices = [""]
         self.selected_map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(300, 305),
                                             choices=self.selected_map_choices, size=wx.Size(175, 200))
+
+        # Disable the map selection lists until the user selects a server and a database
+        self.map_list.Disable()
+        self.selected_map_list.Disable()
 
         # Create buttons to add maps to the selected list or remove them
         self.add_maps_to_selection = wx.Button(self.mainPanel, label="Add -->", pos=wx.Point(210, 350),
@@ -160,9 +165,20 @@ class MainFrame(wx.Frame):
         for row in rows:
             self.db_list.Append(row[0])
         self.sb.SetStatusText("Please select your HAZUS Study Region")
+        cxn.close()
 
+    # 4. Select HAZUS study region (SQL Server database)
+    def select_hazus_db(self, event):
+        """This function allows the user to select a HAZUS Study Region (SQL Server Database) from
+        a drop down list, then enables the user to select the set of maps to generate."""
+        self.hazus_db = self.db_list.GetValue()
+        self.sb.SetStatusText("You chose %s" % self.hazus_db)
+        self.logger.info("HAZUS Database: " + str(self.hazus_db))
 
-# 4. Select HAZUS study region (SQL Server database)
+        # Enable the map selection lists
+        self.map_list.Enable()
+        self.selected_map_list.Enable()
+        self.sb.SetStatusText("Please choose the maps you want to create")
 
 # 5. Choose map or maps from list of templates and add to list of maps to create
 

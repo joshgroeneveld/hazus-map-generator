@@ -107,9 +107,11 @@ class MainFrame(wx.Frame):
                                                 size=wx.Size(300, 25))
 
         self.selected_map_choices = []
+        self.selected_maps = []
         self.selected_map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(300, 305),
                                             style=wx.LB_EXTENDED | wx.LB_SORT, choices=self.selected_map_choices,
                                             size=wx.Size(175, 200))
+        self.deselect_map_choices = []
 
         # Disable the map selection lists until the user selects a server and a database
         self.map_list.Disable()
@@ -122,6 +124,7 @@ class MainFrame(wx.Frame):
 
         self.remove_maps_from_selection = wx.Button(self.mainPanel, label="Remove <--", pos=wx.Point(210, 420),
                                                     size=wx.Size(80, 60))
+        self.remove_maps_from_selection.Bind(wx.EVT_BUTTON, self.deselect_maps)
 
         # Create a button that runs the script
         self.create_maps = wx.Button(self.mainPanel, label="Go!", pos=wx.Point(20, 560),
@@ -195,9 +198,25 @@ class MainFrame(wx.Frame):
         # original list so that each map can only be selected once
         for s in self.selected_map_choices:
             selected_map = self.map_list.GetString(s)
-            self.selected_map_list.Append(selected_map)
+            self.selected_maps.append(selected_map)
             self.map_choices.remove(selected_map)
+            self.logger.info("Added " + str(selected_map) + " to selection")
+        self.selected_map_list.Set(self.selected_maps)
         self.map_list.Set(self.map_choices)
+        self.sb.SetStatusText("Click Go! to create maps or adjust your selections")
+
+    def deselect_maps(self, event):
+        """This function allows the user to revise the current map selection before creating the maps."""
+        self.deselect_map_choices = list(self.selected_map_list.GetSelections())
+
+        for d in self.deselect_map_choices:
+            map_to_deselect = self.selected_map_list.GetString(d)
+            self.map_choices.append(map_to_deselect)
+            self.selected_maps.remove(map_to_deselect)
+            self.logger.info("Removed " + str(map_to_deselect) + " from selection")
+        self.selected_map_list.Set(self.selected_maps)
+        self.map_list.Set(self.map_choices)
+        self.sb.SetStatusText("Click Go! if you are happy with your selections")
 
 # 6. Run the script
 # 6a. Create the directory structure in output directory

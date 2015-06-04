@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 06.03.2015
+# Updated On: 06.04.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -100,15 +100,16 @@ class MainFrame(wx.Frame):
                             "Search and Rescue Needs", "Special Needs Populations"]
 
         self.map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(20, 305), choices=self.map_choices,
-                                   size=wx.Size(175, 200))
+                                   size=wx.Size(175, 200), style=wx.LB_EXTENDED | wx.LB_SORT)
 
         # Create a list box to show the selected maps
         self.selected_map_label = wx.StaticText(self.mainPanel, -1, "Selected maps", pos=wx.Point(300, 280),
                                                 size=wx.Size(300, 25))
 
-        self.selected_map_choices = [""]
+        self.selected_map_choices = []
         self.selected_map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(300, 305),
-                                            choices=self.selected_map_choices, size=wx.Size(175, 200))
+                                            style=wx.LB_EXTENDED | wx.LB_SORT, choices=self.selected_map_choices,
+                                            size=wx.Size(175, 200))
 
         # Disable the map selection lists until the user selects a server and a database
         self.map_list.Disable()
@@ -117,6 +118,7 @@ class MainFrame(wx.Frame):
         # Create buttons to add maps to the selected list or remove them
         self.add_maps_to_selection = wx.Button(self.mainPanel, label="Add -->", pos=wx.Point(210, 350),
                                                size=wx.Size(80, 60))
+        self.add_maps_to_selection.Bind(wx.EVT_BUTTON, self.select_maps)
 
         self.remove_maps_from_selection = wx.Button(self.mainPanel, label="Remove <--", pos=wx.Point(210, 420),
                                                     size=wx.Size(80, 60))
@@ -183,7 +185,19 @@ class MainFrame(wx.Frame):
         self.selected_map_list.Enable()
         self.sb.SetStatusText("Please choose the maps you want to create")
 
-# 5. Choose map or maps from list of templates and add to list of maps to create
+    # 5. Choose map or maps from list of templates and add to list of maps to create
+    def select_maps(self, event):
+        """This function allows the user to select some or all of the available maps and add them
+        to the list of maps to create."""
+        self.selected_map_choices = list(self.map_list.GetSelections())
+
+        # Add the selected maps to the selected list, and remove these selections from the
+        # original list so that each map can only be selected once
+        for s in self.selected_map_choices:
+            selected_map = self.map_list.GetString(s)
+            self.selected_map_list.Append(selected_map)
+            self.map_choices.remove(selected_map)
+        self.map_list.Set(self.map_choices)
 
 # 6. Run the script
 # 6a. Create the directory structure in output directory

@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 06.04.2015
+# Updated On: 09.24.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -20,6 +20,7 @@ import logging
 import shutil
 import sqlinstances
 import pyodbc
+import inspect
 
 # 1. Initialize wxpython window
 class MainFrame(wx.Frame):
@@ -70,6 +71,8 @@ class MainFrame(wx.Frame):
         self.output_directory_dialog_button = wx.Button(self.mainPanel, label="Choose Output Directory",
                                                         pos=wx.Point(20, 140), size=wx.Size(200, -1))
         self.output_directory = ""
+        self.scenario_dir = ""
+        self.scenario_data_dir = ""
         self.output_directory_dialog_button.Bind(wx.EVT_BUTTON, self.select_output_directory)
 
         # Create an drop down menu to select the name of the HAZUS Server
@@ -129,7 +132,7 @@ class MainFrame(wx.Frame):
         # Create a button that runs the script
         self.create_maps = wx.Button(self.mainPanel, label="Go!", pos=wx.Point(20, 560),
                                         size=wx.Size(150, 60))
-        # self.Bind(wx.EVT_BUTTON, self.oncreatemaps, self.createmaps)
+        self.Bind(wx.EVT_BUTTON, self.copy_template, self.create_maps)
 
         # Create a button that resets the form
         self.reset_button = wx.Button(self.mainPanel, label="Reset", pos=wx.Point(200, 560), size=wx.Size(150, 60))
@@ -218,8 +221,24 @@ class MainFrame(wx.Frame):
         self.map_list.Set(self.map_choices)
         self.sb.SetStatusText("Click Go! if you are happy with your selections")
 
-# 6. Run the script
-# 6a. Create the directory structure in output directory
+    # 6. Run the script
+    # 6a. Create the directory structure in output directory
+    # Copy the template shakemap geodatabase to a Data folder in the
+    # same directory as the earthquake name
+    def copy_template(self, event):
+        """This function copies a template study region geodatabase and the
+        layer files into the selected output directory."""
+        temp = inspect.stack()[0][1]
+        script_dir = temp.replace('HAZUS_Map_Automation.py', "Template")
+        self.scenario_dir = self.output_directory + "\\" + self.hazus_db
+        self.scenario_data_dir = self.scenario_dir + "\\Scenario_Data"
+        shutil.copytree(script_dir, self.scenario_data_dir)
+        self.sb.SetStatusText("Copied template data and maps to " + self.scenario_data_dir)
+        output_dirs = ["Summary_Reports", "JPEG", "PDF"]
+        os.chdir(self.scenario_dir)
+        for new_dir in output_dirs:
+            os.mkdir(new_dir)
+        self.sb.SetStatusText("Created output dirs in: " + self.scenario_dir)
 
 # 6.b Extract data from SQL Server
 

@@ -136,7 +136,7 @@ class MainFrame(wx.Frame):
         # self.Bind(wx.EVT_BUTTON, self.OnReset, self.resetButton)
 
         self.Show()
-        
+
     # 2. Select output directory
     def select_output_directory(self, event):
         """This function allows the user to choose an output directory and then generates a list

@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 09.24.2015
+# Updated On: 09.25.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -234,15 +234,108 @@ class MainFrame(wx.Frame):
         self.scenario_data_dir = self.scenario_dir + "\\Scenario_Data"
         shutil.copytree(script_dir, self.scenario_data_dir)
         self.sb.SetStatusText("Copied template data and maps to " + self.scenario_data_dir)
+        self.logger.info("Copied template data and maps to " + self.scenario_data_dir)
         output_dirs = ["Summary_Reports", "JPEG", "PDF"]
         os.chdir(self.scenario_dir)
         for new_dir in output_dirs:
             os.mkdir(new_dir)
         self.sb.SetStatusText("Created output dirs in: " + self.scenario_dir)
+        self.connect_to_db()
 
-# 6.b Extract data from SQL Server
+    # 6.b Extract data from SQL Server
+    # Use pyodbc to connect to SQL Server
+    def connect_to_db(self):
+        """This function establishes a connection to the selected HAZUS database
+        to extract data for the selected maps."""
+        connection_str = """
+        DRIVER={SQL Server};
+        SERVER=%s;
+        DATABASE=%s;
+        UID=hazuspuser;
+        PWD=gohazusplus_01""" % (self.hazus_server, self.hazus_db)
 
-# 6.c Create table queries to get only the data we need (can probably be combined with 6.b
+        conn = pyodbc.connect(connection_str)
+        self.sb.SetStatusText("Established connection to: " + self.hazus_db)
+        self.logger.info("Established connection to: " + self.hazus_db)
+        cursor = conn.cursor()
+        maps_to_create = []
+        for selected_map in self.selected_maps:
+            print selected_map
+            lower_case = selected_map.lower()
+            no_spaces = lower_case.replace(" ", "_")
+            maps_to_create.append(str(no_spaces))
+
+        # Call a function to extract the data needed for each map
+        # For example, if building inspection needs is one of the selected maps,
+        # the getattr() statement below generates the following:
+        # getattr(self, building_inspection_needs)(), which is equivalent to:
+        # self.building_inspection_needs()
+        for m in maps_to_create:
+            getattr(self, m)(cursor)
+        cursor.close()
+        conn.close()
+        self.sb.SetStatusText("Closed connection to the HAZUS database")
+
+    # 6.c Create table queries to get only the data we need
+    # For each possible map, create a function to call the specific data needed
+
+    def building_inspection_needs(self, cursor):
+        """This function creates the building inspection needs map by querying
+        the eqTractDmg table in the SQL Server database."""
+        print "You want to make a building inspection needs map!"
+        sql = """
+        SELECT Tract, Sum(PDsSlightBC) as PDsSlightBC, Sum(PDsModerateBC) as PDsModerateBC,
+        Sum(PDsExtensiveBC) as PDsExtensiveBC, Sum(PDsCompleteBC) as PDsCompleteBC
+        FROM eqTractDmg WHERE DmgMechType='STR'
+        GROUP BY Tract
+        """
+        cursor.execute(sql)
+        buildings = cursor.fetchall()
+        for building in buildings:
+            print building.Tract, building.PDsCompleteBC
+
+    def direct_economic_loss(self, cursor):
+        """This function creates a direct economic loss map by querying the
+        eqTractEconLoss table in the SQL Server database."""
+        print "You want to make a direct economic loss map!"
+        sql = """
+        SELECT Tract, Sum(StructLoss) as StructLoss, Sum(TotalLoss) as TotalLoss
+        FROM eqTractEconLoss
+        GROUP BY Tract
+        """
+        cursor.execute(sql)
+        del_tracts = cursor.fetchall()
+        for tract in del_tracts:
+            print tract.Tract, tract.TotalLoss
+
+    def estimated_debris(self, cursor):
+        """This function creates an estimated debris map by querying the
+        eqTract table in the SQL Server database."""
+        print "You want to make an estimated debris map!"
+        sql = """
+        SELECT Tract, DebrisS, DebrisC, DebrisTotal
+        FROM eqTract
+        """
+        cursor.execute(sql)
+        debris_tracts = cursor.fetchall()
+        for tract in debris_tracts:
+            print tract.Tract, tract.DebrisS
+
+    def search_and_rescue_needs(self, cursor):
+        pass
+
+    def shelter_needs(self, cursor):
+        """This function creates a shelter needs map by querying the
+        eqTract table in the SQL Server database."""
+        print "You want to make a shelter needs map!"
+        sql = """
+        SELECT Tract, ShortTermShelter, DisplacedHouseholds
+        FROM eqTract
+        """
+        cursor.execute(sql)
+        shelter_tracts = cursor.fetchall()
+        for tract in shelter_tracts:
+            print tract.Tract, tract.ShortTermShelter, tract.DisplacedHouseholds
 
 # 6.d Join data to census geography as needed
 

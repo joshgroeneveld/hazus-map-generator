@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 09.25.2015
+# Updated On: 09.30.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -282,60 +282,166 @@ class MainFrame(wx.Frame):
     def building_inspection_needs(self, cursor):
         """This function creates the building inspection needs map by querying
         the eqTractDmg table in the SQL Server database."""
-        print "You want to make a building inspection needs map!"
-        sql = """
+        self.logger.info("You want to make a building inspection needs map!")
+        building_inspection_sql = """
         SELECT Tract, Sum(PDsSlightBC) as PDsSlightBC, Sum(PDsModerateBC) as PDsModerateBC,
         Sum(PDsExtensiveBC) as PDsExtensiveBC, Sum(PDsCompleteBC) as PDsCompleteBC
         FROM eqTractDmg WHERE DmgMechType='STR'
         GROUP BY Tract
         """
-        cursor.execute(sql)
+        cursor.execute(building_inspection_sql)
         buildings = cursor.fetchall()
         for building in buildings:
             print building.Tract, building.PDsCompleteBC
 
+    def demographic_distribution(self, cursor):
+        """This function creates a demographic distribution map by showing the
+        distribution of people over the age of 65."""
+        print "You want to make a demographic distribution map!"
+
     def direct_economic_loss(self, cursor):
         """This function creates a direct economic loss map by querying the
         eqTractEconLoss table in the SQL Server database."""
-        print "You want to make a direct economic loss map!"
-        sql = """
+        self.logger.info("You want to make a direct economic loss map!")
+        economic_loss_sql = """
         SELECT Tract, Sum(StructLoss) as StructLoss, Sum(TotalLoss) as TotalLoss
         FROM eqTractEconLoss
         GROUP BY Tract
         """
-        cursor.execute(sql)
+        cursor.execute(economic_loss_sql)
         del_tracts = cursor.fetchall()
         for tract in del_tracts:
             print tract.Tract, tract.TotalLoss
 
+    def elderly_populations(self, cursor):
+        """This function creates an elderly populations map by showing the
+        distribution of people over the age of 65."""
+        self.logger.info("You want to make an elderly populations map!")
+
     def estimated_debris(self, cursor):
         """This function creates an estimated debris map by querying the
         eqTract table in the SQL Server database."""
-        print "You want to make an estimated debris map!"
-        sql = """
+        self.logger.info("You want to make an estimated debris map!")
+        debris_sql = """
         SELECT Tract, DebrisS, DebrisC, DebrisTotal
         FROM eqTract
         """
-        cursor.execute(sql)
+        cursor.execute(debris_sql)
         debris_tracts = cursor.fetchall()
         for tract in debris_tracts:
             print tract.Tract, tract.DebrisS
 
+    def highway_infrastructure_damage(self, cursor):
+        """This function creates a highway Infrastructure damage map by querying
+        the eqHighwayBridge and eqHighwaySegement tables in the SQL Server database."""
+        self.logger.info("You want to make a highway Infrastructure damage map!")
+        highways_sql = """
+        SELECT HighwaySegID, PDsExceedModerate, FunctDay1, EconLoss
+        FROM eqHighwaySegment
+        """
+        cursor.execute(highways_sql)
+        highways = cursor.fetchall()
+        for highway in highways:
+            print highway.HighwaySegID, highway.EconLoss
+
+        bridges_sql = """
+        SELECT HighwayBridgeID, PDsExceedModerate, FunctDay1, EconLoss
+        FROM eqHighwayBridge
+        """
+        cursor.execute(bridges_sql)
+        bridges = cursor.fetchall()
+        for bridge in bridges:
+            print bridge.HighwayBridgeID, bridge.EconLoss
+
+    def impaired_hospitals(self, cursor):
+        """This function creates an impaired hospitals map by querying the
+        eqCareFlty table in the SQL Server database."""
+        self.logger.info("You want to make an impaired hospitals map!")
+        hospital_sql = """
+        SELECT CareFltyID, PDsExceedModerate, FunctDay1, EconLoss
+        FROM eqCareFlty
+        """
+        cursor.execute(hospital_sql)
+        hospitals = cursor.fetchall()
+        for hospital in hospitals:
+            print hospital.CareFltyID, hospital.EconLoss
+
     def search_and_rescue_needs(self, cursor):
-        pass
+        """This function creates a search and rescue needs map by querying the
+        eqTractDmg table in the SQL Server database.  Search and rescue needs are
+        represented by red tag (complete) damage buildings.  Only a portion of these
+        buildings would be expected to collapse (e.g., 15 percent of URMs)."""
+        self.logger.info("You want to make a search and rescue needs map!")
+        sar_sql = """
+        SELECT Tract, Sum(PDsCompleteBC) as PDsCompleteBC
+        FROM eqTractDmg WHERE DmgMechType='STR'
+        GROUP BY Tract
+        """
+        cursor.execute(sar_sql)
+        sar_buildings = cursor.fetchall()
+        for sar_building in sar_buildings:
+            print sar_building.Tract, sar_building.PDsCompleteBC
 
     def shelter_needs(self, cursor):
         """This function creates a shelter needs map by querying the
         eqTract table in the SQL Server database."""
-        print "You want to make a shelter needs map!"
-        sql = """
+        self.logger.info("You want to make a shelter needs map!")
+        shelter_sql = """
         SELECT Tract, ShortTermShelter, DisplacedHouseholds
         FROM eqTract
         """
-        cursor.execute(sql)
+        cursor.execute(shelter_sql)
         shelter_tracts = cursor.fetchall()
         for tract in shelter_tracts:
             print tract.Tract, tract.ShortTermShelter, tract.DisplacedHouseholds
+
+    def special_needs_populations(self, cursor):
+        self.logger.info("You want to make a special needs populations map!")
+
+    def utility_damage(self, cursor):
+        """THis function creates a utility damage map by querying the
+        eqElectricPowerFlty, eqOilFlty and eqNaturalGasFlty tables in the
+        SQL Server database."""
+        self.logger.info("You want to make a utility damage map!")
+        electric_flty_sql = """
+        SELECT ElectricPowerFltyID, PDsExceedModerate, FunctDay1, EconLoss
+        FROM eqElectricPowerFlty
+        """
+        cursor.execute(electric_flty_sql)
+        electric_facilities = cursor.fetchall()
+        for electric_facility in electric_facilities:
+            print electric_facility.ElectricPowerFltyID, electric_facility.EconLoss
+
+        natural_gas_flty_sql = """
+        SELECT NaturalGasFltyID, PDsExceedModerate, FunctDay1, EconLoss
+        FROM eqNaturalGasFlty
+        """
+        cursor.execute(natural_gas_flty_sql)
+        natural_gas_facilities = cursor.fetchall()
+        for natural_gas_facility in natural_gas_facilities:
+            print natural_gas_facility.NaturalGasFltyID, natural_gas_facility.EconLoss
+
+        oil_flty_sql = """
+        SELECT OilFltyID, PDsExceedModerate, FunctDay1, EconLoss
+        FROM eqOilFlty
+        """
+        cursor.execute(oil_flty_sql)
+        oil_facilities = cursor.fetchall()
+        for oil_facility in oil_facilities:
+            print oil_facility.OilFltyID, oil_facility.EconLoss
+
+    def water_infrastructure_damage(self, cursor):
+        """This function creates a potable water infrastructure damage map by
+        querying the eqPotableWaterDL table in the SQL Server database."""
+        self.logger.info("You want to make a water Infrastructure damage map!")
+        water_sql = """
+        SELECT Tract, TotalPipe, TotalNumRepairs, TotalDysRepairs, EconLoss, Cost
+        FROM eqPotableWaterDL
+        """
+        cursor.execute(water_sql)
+        tracts = cursor.fetchall()
+        for tract in tracts:
+            print tract.Tract, tract.EconLoss, tract.Cost
 
 # 6.d Join data to census geography as needed
 

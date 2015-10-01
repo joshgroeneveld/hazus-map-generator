@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 09.30.2015
+# Updated On: 10.01.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -21,6 +21,7 @@ import shutil
 import sqlinstances
 import pyodbc
 import inspect
+import arcpy
 
 # 1. Initialize wxpython window
 class MainFrame(wx.Frame):
@@ -73,6 +74,7 @@ class MainFrame(wx.Frame):
         self.output_directory = ""
         self.scenario_dir = ""
         self.scenario_data_dir = ""
+        self.study_region_data = ""
         self.output_directory_dialog_button.Bind(wx.EVT_BUTTON, self.select_output_directory)
 
         # Create an drop down menu to select the name of the HAZUS Server
@@ -232,6 +234,7 @@ class MainFrame(wx.Frame):
         script_dir = temp.replace('HAZUS_Map_Automation.py', "Template")
         self.scenario_dir = self.output_directory + "\\" + self.hazus_db
         self.scenario_data_dir = self.scenario_dir + "\\Scenario_Data"
+        self.study_region_data = self.scenario_data_dir + "\\Data\\StudyRegionData.mdb"
         shutil.copytree(script_dir, self.scenario_data_dir)
         self.sb.SetStatusText("Copied template data and maps to " + self.scenario_data_dir)
         self.logger.info("Copied template data and maps to " + self.scenario_data_dir)
@@ -260,7 +263,7 @@ class MainFrame(wx.Frame):
         cursor = conn.cursor()
         maps_to_create = []
         for selected_map in self.selected_maps:
-            print selected_map
+            self.logger.info("Selected map list includes: " + selected_map)
             lower_case = selected_map.lower()
             no_spaces = lower_case.replace(" ", "_")
             maps_to_create.append(str(no_spaces))
@@ -283,6 +286,8 @@ class MainFrame(wx.Frame):
         """This function creates the building inspection needs map by querying
         the eqTractDmg table in the SQL Server database."""
         self.logger.info("You want to make a building inspection needs map!")
+
+        # Get the data from SQL Server
         building_inspection_sql = """
         SELECT Tract, Sum(PDsSlightBC) as PDsSlightBC, Sum(PDsModerateBC) as PDsModerateBC,
         Sum(PDsExtensiveBC) as PDsExtensiveBC, Sum(PDsCompleteBC) as PDsCompleteBC
@@ -290,28 +295,59 @@ class MainFrame(wx.Frame):
         GROUP BY Tract
         """
         cursor.execute(building_inspection_sql)
-        buildings = cursor.fetchall()
-        for building in buildings:
-            print building.Tract, building.PDsCompleteBC
+        inspection_tracts = cursor.fetchall()
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqTract table
+        fc = self.study_region_data + "\\eqTract"
+        for ins_tract in inspection_tracts:
+            tract = ins_tract.Tract
+            slight = ins_tract.PDsSlightBC
+            moderate = ins_tract.PDsModerateBC
+            extensive = ins_tract.PDsExtensiveBC
+            complete = ins_tract.PDsCompleteBC
+
+            query = '[Tract] = ' + '\'' + tract + '\''
+            fields = ['PDsSlightBC', 'PDsModerateBC', 'PDsExtensiveBC', 'PDsCompleteBC', 'SL_MO_TOT']
+            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = slight
+                    urow[1] = moderate
+                    urow[2] = extensive
+                    urow[3] = complete
+                    urow[4] = slight + moderate
+                    urows.updateRow(urow)
 
     def demographic_distribution(self, cursor):
         """This function creates a demographic distribution map by showing the
-        distribution of people over the age of 65."""
-        print "You want to make a demographic distribution map!"
+        distribution of people who may not speak English as a first language."""
+        self.logger.info("You want to make a demographic distribution map!")
 
     def direct_economic_loss(self, cursor):
         """This function creates a direct economic loss map by querying the
         eqTractEconLoss table in the SQL Server database."""
         self.logger.info("You want to make a direct economic loss map!")
+
+        # Get the data from SQL Server
         economic_loss_sql = """
-        SELECT Tract, Sum(StructLoss) as StructLoss, Sum(TotalLoss) as TotalLoss
+        SELECT Tract, Sum(TotalLoss) as TotalLoss
         FROM eqTractEconLoss
         GROUP BY Tract
         """
         cursor.execute(economic_loss_sql)
         del_tracts = cursor.fetchall()
-        for tract in del_tracts:
-            print tract.Tract, tract.TotalLoss
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqTract table
+        fc = self.study_region_data + "\\eqTract"
+        for del_tract in del_tracts:
+            tract = del_tract.Tract
+            total_econ_loss = del_tract.TotalLoss
+
+            query = '[Tract] = ' + '\'' + tract + '\''
+            fields = ['TotalEconLoss']
+            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = total_econ_loss
+                    urows.updateRow(urow)
 
     def elderly_populations(self, cursor):
         """This function creates an elderly populations map by showing the
@@ -322,14 +358,31 @@ class MainFrame(wx.Frame):
         """This function creates an estimated debris map by querying the
         eqTract table in the SQL Server database."""
         self.logger.info("You want to make an estimated debris map!")
+
+        # Get the data from SQL Server
         debris_sql = """
         SELECT Tract, DebrisS, DebrisC, DebrisTotal
         FROM eqTract
         """
         cursor.execute(debris_sql)
         debris_tracts = cursor.fetchall()
-        for tract in debris_tracts:
-            print tract.Tract, tract.DebrisS
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqTract table
+        fc = self.study_region_data + "\\eqTract"
+        for debris_tract in debris_tracts:
+            tract = debris_tract.Tract
+            debriss = debris_tract.DebrisS
+            debrisc = debris_tract.DebrisC
+            debris_total = debris_tract.DebrisTotal
+
+            query = '[Tract] = ' + '\'' + tract + '\''
+            fields = ['DebrisS', 'DebrisC', 'DebrisTotal']
+            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = debriss
+                    urow[1] = debrisc
+                    urow[2] = debris_total
+                    urows.updateRow(urow)
 
     def highway_infrastructure_damage(self, cursor):
         """This function creates a highway Infrastructure damage map by querying
@@ -355,16 +408,48 @@ class MainFrame(wx.Frame):
 
     def impaired_hospitals(self, cursor):
         """This function creates an impaired hospitals map by querying the
-        eqCareFlty table in the SQL Server database."""
+        eqCareFlty table for hospital performance data and the eqTractCasOccup
+        table for life threatening injury data."""
         self.logger.info("You want to make an impaired hospitals map!")
+
+        # Get the data from SQL Server
         hospital_sql = """
         SELECT CareFltyID, PDsExceedModerate, FunctDay1, EconLoss
         FROM eqCareFlty
+        """
+        injury_sql = """
+        SELECT Tract, Sum(Level1Injury) as Level1Injury, Sum(Level2Injury) as Level2Injury,
+        Sum(Level3Injury) as Level3Injury, Sum(Level4Injury) as Level4Injury
+        FROM eqTractCasOccup
+        WHERE CasTime = 'D' AND InOutTot = 'TOT'
+        GROUP BY Tract
         """
         cursor.execute(hospital_sql)
         hospitals = cursor.fetchall()
         for hospital in hospitals:
             print hospital.CareFltyID, hospital.EconLoss
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqTract table
+        cursor.execute(injury_sql)
+        injury_tracts = cursor.fetchall()
+        fc = self.study_region_data + "\\eqTract"
+        for injury_tract in injury_tracts:
+            tract = injury_tract.Tract
+            level1 = injury_tract.Level1Injury
+            level2 = injury_tract.Level2Injury
+            level3 = injury_tract.Level3Injury
+            level4 = injury_tract.Level4Injury
+
+            query = '[Tract] = ' + '\'' + tract + '\''
+            fields = ['Level1Injury', 'Level2Injury', 'Level3Injury', 'Level4Injury', 'SUM_2_3']
+            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = level1
+                    urow[1] = level2
+                    urow[2] = level3
+                    urow[3] = level4
+                    urow[4] = level2 + level3
+                    urows.updateRow(urow)
 
     def search_and_rescue_needs(self, cursor):
         """This function creates a search and rescue needs map by querying the
@@ -386,14 +471,34 @@ class MainFrame(wx.Frame):
         """This function creates a shelter needs map by querying the
         eqTract table in the SQL Server database."""
         self.logger.info("You want to make a shelter needs map!")
+
+        # Get the data from SQL Server
         shelter_sql = """
-        SELECT Tract, ShortTermShelter, DisplacedHouseholds
+        SELECT Tract, ShortTermShelter, DisplacedHouseholds, ExposedPeople, ExposedValue
         FROM eqTract
         """
         cursor.execute(shelter_sql)
         shelter_tracts = cursor.fetchall()
-        for tract in shelter_tracts:
-            print tract.Tract, tract.ShortTermShelter, tract.DisplacedHouseholds
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqTract table
+        fc = self.study_region_data + "\\eqTract"
+        for shelter_tract in shelter_tracts:
+            tract = shelter_tract.Tract
+            displaced = shelter_tract.DisplacedHouseholds
+            shelter = shelter_tract.ShortTermShelter
+            exposed_people = shelter_tract.ExposedPeople
+            exposed_value = shelter_tract.ExposedValue
+
+            query = '[Tract] = ' + '\'' + tract + '\''
+            fields = ['DisplacedHouseholds', 'ShortTermShelter', 'ExposedPeople', 'ExposedValue']
+            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = displaced
+                    urow[1] = shelter
+                    urow[2] = exposed_people
+                    urow[3] = exposed_value
+                    urows.updateRow(urow)
+
 
     def special_needs_populations(self, cursor):
         self.logger.info("You want to make a special needs populations map!")
@@ -434,14 +539,36 @@ class MainFrame(wx.Frame):
         """This function creates a potable water infrastructure damage map by
         querying the eqPotableWaterDL table in the SQL Server database."""
         self.logger.info("You want to make a water Infrastructure damage map!")
+
+        # Get the data from SQL Server
         water_sql = """
         SELECT Tract, TotalPipe, TotalNumRepairs, TotalDysRepairs, EconLoss, Cost
         FROM eqPotableWaterDL
         """
         cursor.execute(water_sql)
-        tracts = cursor.fetchall()
-        for tract in tracts:
-            print tract.Tract, tract.EconLoss, tract.Cost
+        water_tracts = cursor.fetchall()
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqPotableWaterDL table
+        fc = self.study_region_data + "\\eqPotableWaterDL"
+        for water_tract in water_tracts:
+            tract = water_tract.Tract
+            total_pipe = water_tract.TotalPipe
+            total_repairs = water_tract.TotalNumRepairs
+            total_days = water_tract.TotalDysRepairs
+            econ_loss = water_tract.EconLoss
+            cost = water_tract.Cost
+
+            query = '[Tract] = ' + '\'' + tract + '\''
+            fields = ['TotalPipe', 'TotalNumRepairs', 'TotalDysRepairs', 'EconLoss', 'Cost']
+            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = total_pipe
+                    urow[1] = total_repairs
+                    urow[2] = total_days
+                    urow[3] = econ_loss
+                    urow[4] = cost
+                    urows.updateRow(urow)
+
 
 # 6.d Join data to census geography as needed
 

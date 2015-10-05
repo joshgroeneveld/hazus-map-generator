@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 10.01.2015
+# Updated On: 10.05.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -388,23 +388,56 @@ class MainFrame(wx.Frame):
         """This function creates a highway Infrastructure damage map by querying
         the eqHighwayBridge and eqHighwaySegement tables in the SQL Server database."""
         self.logger.info("You want to make a highway Infrastructure damage map!")
+
+        # Get the data from SQL Server
         highways_sql = """
         SELECT HighwaySegID, PDsExceedModerate, FunctDay1, EconLoss
         FROM eqHighwaySegment
         """
         cursor.execute(highways_sql)
         highways = cursor.fetchall()
-        for highway in highways:
-            print highway.HighwaySegID, highway.EconLoss
 
+        # Update the corresponding fields in the StudyRegionData.mdb\eqHighwaySegment table
+        highway_fc = self.study_region_data + "\\eqHighwaySegment"
+        for highway in highways:
+            highway_id = highway.HighwaySegID
+            highway_moderate = highway.PDsExceedModerate
+            highway_functday1 = highway.FunctDay1
+            highway_econ_loss = highway.EconLoss
+
+            query = '[HighwaySegID] = ' + '\'' + highway_id + '\''
+            fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
+            with arcpy.da.UpdateCursor(highway_fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = highway_moderate
+                    urow[1] = highway_functday1
+                    urow[2] = highway_econ_loss
+                    urows.updateRow(urow)
+
+        # Get the data from SQL Server
         bridges_sql = """
         SELECT HighwayBridgeID, PDsExceedModerate, FunctDay1, EconLoss
         FROM eqHighwayBridge
         """
         cursor.execute(bridges_sql)
         bridges = cursor.fetchall()
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqHighwayBridge table
+        bridge_fc = self.study_region_data + "\\eqHighwayBridge"
         for bridge in bridges:
-            print bridge.HighwayBridgeID, bridge.EconLoss
+            bridge_id = bridge.HighwayBridgeID
+            bridge_moderate = bridge.PDsExceedModerate
+            bridge_functday1 = bridge.FunctDay1
+            bridge_econ_loss = bridge.EconLoss
+
+            query = '[HighwayBridgeId] = ' + '\'' + bridge_id + '\''
+            fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
+            with arcpy.da.UpdateCursor(bridge_fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = bridge_moderate
+                    urow[1] = bridge_functday1
+                    urow[2] = bridge_econ_loss
+                    urows.updateRow(urow)
 
     def impaired_hospitals(self, cursor):
         """This function creates an impaired hospitals map by querying the
@@ -426,8 +459,23 @@ class MainFrame(wx.Frame):
         """
         cursor.execute(hospital_sql)
         hospitals = cursor.fetchall()
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqCareFlty table
+        hospital_fc = self.study_region_data + "\\eqCareFlty"
         for hospital in hospitals:
-            print hospital.CareFltyID, hospital.EconLoss
+            hospital_id = hospital.CareFltyID
+            hospital_moderate = hospital.PDsExceedModerate
+            hospital_functday1 = hospital.FunctDay1
+            hospital_econ_loss = hospital.EconLoss
+
+            query = '[CareFltyId] = ' + '\'' + hospital_id + '\''
+            fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
+            with arcpy.da.UpdateCursor(hospital_fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = hospital_moderate
+                    urow[1] = hospital_functday1
+                    urow[2] = hospital_econ_loss
+                    urows.updateRow(urow)
 
         # Update the corresponding fields in the StudyRegionData.mdb\eqTract table
         cursor.execute(injury_sql)
@@ -457,15 +505,28 @@ class MainFrame(wx.Frame):
         represented by red tag (complete) damage buildings.  Only a portion of these
         buildings would be expected to collapse (e.g., 15 percent of URMs)."""
         self.logger.info("You want to make a search and rescue needs map!")
+
+        # Get the data from SQL Server
         sar_sql = """
         SELECT Tract, Sum(PDsCompleteBC) as PDsCompleteBC
         FROM eqTractDmg WHERE DmgMechType='STR'
         GROUP BY Tract
         """
         cursor.execute(sar_sql)
-        sar_buildings = cursor.fetchall()
-        for sar_building in sar_buildings:
-            print sar_building.Tract, sar_building.PDsCompleteBC
+        sar_tracts = cursor.fetchall()
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqTract table
+        fc = self.study_region_data + "\\eqTract"
+        for sar_tract in sar_tracts:
+            tract = sar_tract.Tract
+            complete = sar_tract.PDsCompleteBC
+
+            query = '[Tract] = ' + '\'' + tract + '\''
+            fields = ['PDsCompleteBC']
+            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = complete
+                    urows.updateRow(urow)
 
     def shelter_needs(self, cursor):
         """This function creates a shelter needs map by querying the
@@ -508,32 +569,81 @@ class MainFrame(wx.Frame):
         eqElectricPowerFlty, eqOilFlty and eqNaturalGasFlty tables in the
         SQL Server database."""
         self.logger.info("You want to make a utility damage map!")
+
+        # Get the datat from SQL Server
         electric_flty_sql = """
         SELECT ElectricPowerFltyID, PDsExceedModerate, FunctDay1, EconLoss
         FROM eqElectricPowerFlty
         """
         cursor.execute(electric_flty_sql)
         electric_facilities = cursor.fetchall()
-        for electric_facility in electric_facilities:
-            print electric_facility.ElectricPowerFltyID, electric_facility.EconLoss
 
+        # Update the corresponding fields in the StudyRegionData.mdb\eqElectricPowerFlty table
+        electric_fc = self.study_region_data + "\\eqElectricPowerFlty"
+        for electric_facility in electric_facilities:
+            electric_flty_id = electric_facility.ElectricPowerFltyID
+            electric_flty_moderate = electric_facility.PDsExceedModerate
+            electric_flty_funct_day1 = electric_facility.FunctDay1
+            electric_flty_econ_loss = electric_facility.EconLoss
+
+            query = '[ElectricPowerFltyID] = ' + '\'' + electric_flty_id + '\''
+            fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
+            with arcpy.da.UpdateCursor(electric_fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = electric_flty_moderate
+                    urow[1] = electric_flty_moderate
+                    urow[2] = electric_flty_econ_loss
+                    urows.updateRow(urow)
+
+        # Get the datat from SQL Server
         natural_gas_flty_sql = """
         SELECT NaturalGasFltyID, PDsExceedModerate, FunctDay1, EconLoss
         FROM eqNaturalGasFlty
         """
         cursor.execute(natural_gas_flty_sql)
         natural_gas_facilities = cursor.fetchall()
-        for natural_gas_facility in natural_gas_facilities:
-            print natural_gas_facility.NaturalGasFltyID, natural_gas_facility.EconLoss
 
+        # Update the corresponding fields in the StudyRegionData.mdb\eqNaturalGasFlty table
+        ng_fc = self.study_region_data + "\\eqNaturalGasFlty"
+        for natural_gas_facility in natural_gas_facilities:
+            natural_gas_flty_id = natural_gas_facility.ElectricPowerFltyID
+            natural_gas_flty_moderate = natural_gas_facility.PDsExceedModerate
+            natural_gas_flty_funct_day1 = natural_gas_facility.FunctDay1
+            natural_gas_flty_econ_loss = natural_gas_facility.EconLoss
+
+            query = '[NaturalGasFltyID] = ' + '\'' + natural_gas_flty_id + '\''
+            fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
+            with arcpy.da.UpdateCursor(ng_fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = natural_gas_flty_moderate
+                    urow[1] = natural_gas_flty_moderate
+                    urow[2] = natural_gas_flty_econ_loss
+                    urows.updateRow(urow)
+
+        # Get the datat from SQL Server
         oil_flty_sql = """
         SELECT OilFltyID, PDsExceedModerate, FunctDay1, EconLoss
         FROM eqOilFlty
         """
         cursor.execute(oil_flty_sql)
         oil_facilities = cursor.fetchall()
+
+        # Update the corresponding fields in the StudyRegionData.mdb\eqOilFlty table
+        oil_fc = self.study_region_data + "\\eqOilFlty"
         for oil_facility in oil_facilities:
-            print oil_facility.OilFltyID, oil_facility.EconLoss
+            oil_flty_id = oil_facility.ElectricPowerFltyID
+            oil_flty_moderate = oil_facility.PDsExceedModerate
+            oil_flty_funct_day1 = oil_facility.FunctDay1
+            oil_flty_econ_loss = oil_facility.EconLoss
+
+            query = '[OilFltyID] = ' + '\'' + oil_flty_id + '\''
+            fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
+            with arcpy.da.UpdateCursor(oil_fc, fields, query) as urows:
+                for urow in urows:
+                    urow[0] = oil_flty_moderate
+                    urow[1] = oil_flty_moderate
+                    urow[2] = oil_flty_econ_loss
+                    urows.updateRow(urow)
 
     def water_infrastructure_damage(self, cursor):
         """This function creates a potable water infrastructure damage map by

@@ -317,6 +317,8 @@ class MainFrame(wx.Frame):
                     urow[4] = slight + moderate
                     urows.updateRow(urow)
 
+        self.update_fc(fc, 'PDsSlightBC')
+
     def demographic_distribution(self, cursor):
         """This function creates a demographic distribution map by showing the
         distribution of people who may not speak English as a first language."""
@@ -348,6 +350,8 @@ class MainFrame(wx.Frame):
                 for urow in urows:
                     urow[0] = total_econ_loss
                     urows.updateRow(urow)
+
+        self.update_fc(fc, 'TotalEconLoss')
 
     def elderly_populations(self, cursor):
         """This function creates an elderly populations map by showing the
@@ -384,6 +388,8 @@ class MainFrame(wx.Frame):
                     urow[2] = debris_total
                     urows.updateRow(urow)
 
+        self.update_fc(fc, 'DebrisTotal')
+
     def highway_infrastructure_damage(self, cursor):
         """This function creates a highway Infrastructure damage map by querying
         the eqHighwayBridge and eqHighwaySegement tables in the SQL Server database."""
@@ -414,6 +420,8 @@ class MainFrame(wx.Frame):
                     urow[2] = highway_econ_loss
                     urows.updateRow(urow)
 
+        self.update_fc(highway_fc, 'PDsExceedModerate')
+
         # Get the data from SQL Server
         bridges_sql = """
         SELECT HighwayBridgeID, PDsExceedModerate, FunctDay1, EconLoss
@@ -438,6 +446,8 @@ class MainFrame(wx.Frame):
                     urow[1] = bridge_functday1
                     urow[2] = bridge_econ_loss
                     urows.updateRow(urow)
+
+        self.update_fc(bridge_fc, 'PDsExceedModerate')
 
     def impaired_hospitals(self, cursor):
         """This function creates an impaired hospitals map by querying the
@@ -477,6 +487,8 @@ class MainFrame(wx.Frame):
                     urow[2] = hospital_econ_loss
                     urows.updateRow(urow)
 
+        self.update_fc(hospital_fc, 'PDsExceedModerate')
+
         # Update the corresponding fields in the StudyRegionData.mdb\eqTract table
         cursor.execute(injury_sql)
         injury_tracts = cursor.fetchall()
@@ -498,6 +510,8 @@ class MainFrame(wx.Frame):
                     urow[3] = level4
                     urow[4] = level2 + level3
                     urows.updateRow(urow)
+
+        self.update_fc(fc, 'Level1Injury')
 
     def search_and_rescue_needs(self, cursor):
         """This function creates a search and rescue needs map by querying the
@@ -527,6 +541,8 @@ class MainFrame(wx.Frame):
                 for urow in urows:
                     urow[0] = complete
                     urows.updateRow(urow)
+
+        self.update_fc(fc, 'PDsCompleteBC')
 
     def shelter_needs(self, cursor):
         """This function creates a shelter needs map by querying the
@@ -559,6 +575,8 @@ class MainFrame(wx.Frame):
                     urow[2] = exposed_people
                     urow[3] = exposed_value
                     urows.updateRow(urow)
+
+        self.update_fc(fc, 'DisplacedHouseholds')
 
 
     def special_needs_populations(self, cursor):
@@ -595,6 +613,8 @@ class MainFrame(wx.Frame):
                     urow[2] = electric_flty_econ_loss
                     urows.updateRow(urow)
 
+        self.update_fc(electric_fc, 'PDsExceedModerate')
+
         # Get the datat from SQL Server
         natural_gas_flty_sql = """
         SELECT NaturalGasFltyID, PDsExceedModerate, FunctDay1, EconLoss
@@ -620,6 +640,8 @@ class MainFrame(wx.Frame):
                     urow[2] = natural_gas_flty_econ_loss
                     urows.updateRow(urow)
 
+        self.update_fc(ng_fc, 'PDsExceedModerate')
+
         # Get the datat from SQL Server
         oil_flty_sql = """
         SELECT OilFltyID, PDsExceedModerate, FunctDay1, EconLoss
@@ -644,6 +666,8 @@ class MainFrame(wx.Frame):
                     urow[1] = oil_flty_moderate
                     urow[2] = oil_flty_econ_loss
                     urows.updateRow(urow)
+
+        self.update_fc(oil_fc, 'PDsExceedModerate')
 
     def water_infrastructure_damage(self, cursor):
         """This function creates a potable water infrastructure damage map by
@@ -679,6 +703,19 @@ class MainFrame(wx.Frame):
                     urow[4] = cost
                     urows.updateRow(urow)
 
+        self.update_fc(fc, 'TotalDysRepairs')
+
+    def update_fc(self, fc, field):
+        """This function updates a feature class that removes all of the records
+        from the geodatabase that are not part of the study region.  The fc
+        parameter is the feature class to update and the field parameter is the
+        field in the feature class that was updated with data from the HAZUS
+        database.  Records not part of the study region will have a field value
+        of NULL."""
+        query = '[' + field + '] IS NULL'
+        with arcpy.da.UpdateCursor(fc, '*', query) as urows:
+            for urow in urows:
+                urows.deleteRow()
 
 # 6.d Join data to census geography as needed
 

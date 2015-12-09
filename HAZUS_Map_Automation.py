@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 10.05.2015
+# Updated On: 12.09.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -117,6 +117,7 @@ class MainFrame(wx.Frame):
                                             style=wx.LB_EXTENDED | wx.LB_SORT, choices=self.selected_map_choices,
                                             size=wx.Size(175, 200))
         self.deselect_map_choices = []
+        self.map_extent = {}
 
         # Disable the map selection lists until the user selects a server and a database
         self.map_list.Disable()
@@ -268,6 +269,7 @@ class MainFrame(wx.Frame):
             no_spaces = lower_case.replace(" ", "_")
             maps_to_create.append(str(no_spaces))
 
+        self.determine_map_extent(cursor)
         # Call a function to extract the data needed for each map
         # For example, if building inspection needs is one of the selected maps,
         # the getattr() statement below generates the following:
@@ -278,6 +280,44 @@ class MainFrame(wx.Frame):
         cursor.close()
         conn.close()
         self.sb.SetStatusText("Closed connection to the HAZUS database")
+
+    def determine_map_extent(self, cursor):
+        """This function accepts a cursor from pyodbc to call the SQL Server
+        database and queries the database for all tracts in the current study
+        region.  These tracts are then passed to arcpy to calculate the extent
+        of these tracts.  This extent is returned out of the function and passed
+        to each of the maps selected."""
+        study_region_tracts_sql = """
+        SELECT Tract FROM hzTract
+        """
+        cursor.execute(study_region_tracts_sql)
+        study_region_tracts = cursor.fetchall()
+        tracts_to_select = []
+        for sr_tract in study_region_tracts:
+            tracts_to_select.append(sr_tract[0])
+
+        # Convert list of tracts into a string to add to a selection query
+        str_tracts = str(tracts_to_select)
+        str_tracts = str_tracts.replace("[", "")
+        str_tracts = str_tracts.replace("]", "")
+
+        tract_fc = arcpy.mapping.Layer(self.scenario_data_dir + "\\Data\\TotalEconLoss.lyr")
+        out_fl = self.scenario_data_dir + "\\Data\\Selected_Tracts.lyr"
+
+        arcpy.management.MakeFeatureLayer(tract_fc, "temp_lyr")
+        lyr = arcpy.mapping.Layer("temp_lyr")
+        lyr.definitionQuery = "[Tract] in (" + str_tracts + ")"
+        lyr.saveACopy(out_fl)
+        selection_layer = arcpy.mapping.Layer(out_fl)
+        # Get extent of feature layer
+        tract_extent = selection_layer.getExtent()
+        # Return extent out of function as dictionary
+        self.map_extent["XMin"] = tract_extent.XMin
+        self.map_extent["XMax"] = tract_extent.XMax
+        self.map_extent["YMin"] = tract_extent.YMin
+        self.map_extent["YMax"] = tract_extent.YMax
+
+        self.sb.SetStatusText("Determined map extent")
 
     # 6.c Create table queries to get only the data we need
     # For each possible map, create a function to call the specific data needed

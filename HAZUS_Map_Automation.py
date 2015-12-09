@@ -99,10 +99,10 @@ class MainFrame(wx.Frame):
         self.db_list.Bind(wx.EVT_COMBOBOX, self.select_hazus_db)
 
         # Create a list box with all of the potential maps that the user can select
-        self.map_choices = ["Direct Economic Loss", "Shelter Needs", "Elderly Populations", "Utility Damage",
-                            "Building Inspection Needs", "Estimated Debris", "Demographic Distribution",
+        self.map_choices = ["Direct Economic Loss", "Shelter Needs", "Utility Damage",
+                            "Building Inspection Needs", "Estimated Debris",
                             "Highway Infrastructure Damage", "Impaired Hospitals", "Water Infrastructure Damage",
-                            "Search and Rescue Needs", "Special Needs Populations"]
+                            "Search and Rescue Needs"]
 
         self.map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(20, 305), choices=self.map_choices,
                                    size=wx.Size(175, 200), style=wx.LB_EXTENDED | wx.LB_SORT)
@@ -359,11 +359,6 @@ class MainFrame(wx.Frame):
 
         self.update_fc(fc, 'PDsSlightBC')
 
-    def demographic_distribution(self, cursor):
-        """This function creates a demographic distribution map by showing the
-        distribution of people who may not speak English as a first language."""
-        self.logger.info("You want to make a demographic distribution map!")
-
     def direct_economic_loss(self, cursor):
         """This function creates a direct economic loss map by querying the
         eqTractEconLoss table in the SQL Server database."""
@@ -392,11 +387,6 @@ class MainFrame(wx.Frame):
                     urows.updateRow(urow)
 
         self.update_fc(fc, 'TotalEconLoss')
-
-    def elderly_populations(self, cursor):
-        """This function creates an elderly populations map by showing the
-        distribution of people over the age of 65."""
-        self.logger.info("You want to make an elderly populations map!")
 
     def estimated_debris(self, cursor):
         """This function creates an estimated debris map by querying the
@@ -618,9 +608,6 @@ class MainFrame(wx.Frame):
 
         self.update_fc(fc, 'DisplacedHouseholds')
 
-
-    def special_needs_populations(self, cursor):
-        self.logger.info("You want to make a special needs populations map!")
 
     def utility_damage(self, cursor):
         """THis function creates a utility damage map by querying the

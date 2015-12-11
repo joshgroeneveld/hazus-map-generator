@@ -361,7 +361,8 @@ class MainFrame(wx.Frame):
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\BuildingInspectionNeeds.mxd"
-        self.update_and_export_map(mxd)
+        map_name = "BuildingInspectionNeeds"
+        self.update_and_export_map(mxd, map_name)
 
     def direct_economic_loss(self, cursor):
         """This function creates a direct economic loss map by querying the
@@ -394,7 +395,8 @@ class MainFrame(wx.Frame):
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\DirectEconomicLoss.mxd"
-        self.update_and_export_map(mxd)
+        map_name = "DirectEconomicLoss"
+        self.update_and_export_map(mxd, map_name)
 
     def estimated_debris(self, cursor):
         """This function creates an estimated debris map by querying the
@@ -430,7 +432,8 @@ class MainFrame(wx.Frame):
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\EstimatedDebris.mxd"
-        self.update_and_export_map(mxd)
+        map_name = "EstimatedDebris"
+        self.update_and_export_map(mxd, map_name)
 
     def highway_infrastructure_damage(self, cursor):
         """This function creates a highway Infrastructure damage map by querying
@@ -493,7 +496,8 @@ class MainFrame(wx.Frame):
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\HighwayInfrastructureDamage.mxd"
-        self.update_and_export_map(mxd)
+        map_name = "HighwayInfrastructureDamage"
+        self.update_and_export_map(mxd, map_name)
 
     def impaired_hospitals(self, cursor):
         """This function creates an impaired hospitals map by querying the
@@ -561,7 +565,8 @@ class MainFrame(wx.Frame):
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\ImpairedHospitals.mxd"
-        self.update_and_export_map(mxd)
+        map_name = "ImpairedHospitals"
+        self.update_and_export_map(mxd, map_name)
 
     def search_and_rescue_needs(self, cursor):
         """This function creates a search and rescue needs map by querying the
@@ -596,7 +601,8 @@ class MainFrame(wx.Frame):
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\SearchandRescueNeeds.mxd"
-        self.update_and_export_map(mxd)
+        map_name = "SearchandRescueNeeds"
+        self.update_and_export_map(mxd, map_name)
 
     def shelter_needs(self, cursor):
         """This function creates a shelter needs map by querying the
@@ -634,7 +640,8 @@ class MainFrame(wx.Frame):
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\ShelterNeeds.mxd"
-        self.update_and_export_map(mxd)
+        map_name = "ShelterNeeds"
+        self.update_and_export_map(mxd, map_name)
 
     def utility_damage(self, cursor):
         """THis function creates a utility damage map by querying the
@@ -725,7 +732,8 @@ class MainFrame(wx.Frame):
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\UtilityDamage.mxd"
-        self.update_and_export_map(mxd)
+        map_name = "UtilityDamage"
+        self.update_and_export_map(mxd, map_name)
 
     def water_infrastructure_damage(self, cursor):
         """This function creates a potable water infrastructure damage map by
@@ -764,8 +772,9 @@ class MainFrame(wx.Frame):
         self.update_fc(fc, 'TotalDysRepairs')
 
         # Update and export the map
-        mxd = self.scenario_data_dir + "\\Maps\\UtilityDamage.mxd"
-        self.update_and_export_map(mxd)
+        mxd = self.scenario_data_dir + "\\Maps\\WaterInfrastructureDamage.mxd"
+        map_name = "WaterInfrastructureDamage"
+        self.update_and_export_map(mxd, map_name)
 
     def update_fc(self, fc, field):
         """This function updates a feature class that removes all of the records
@@ -781,12 +790,12 @@ class MainFrame(wx.Frame):
 
 # 6.d Update the template mxds with a new extent
 # Map symbology should be set from the template lyr files
-    def update_and_export_map(self, mxd):
-        """This function takes a path to an mxd on disk as input.  Using the
-        arcpy module, it then sets the extent of the data frame to match all of
-        the Census Tracts in the study region.  The map elements are updated to
-        match the author name and reflect any tabular information contained on
-        the map layout."""
+    def update_and_export_map(self, mxd, map_name):
+        """This function takes a path to an mxd on disk and a map name as input.
+        Using the arcpy module, it then sets the extent of the data frame to
+        match all of the Census Tracts in the study region.  The map elements
+        are updated to match the author name and reflect any tabular information
+        contained on the map layout."""
         current_map = arcpy.mapping.MapDocument(mxd)
         df = arcpy.mapping.ListDataFrames(current_map, "Template_Data")[0]
 
@@ -801,9 +810,15 @@ class MainFrame(wx.Frame):
         df.extent = new_extent
         current_map.save()
 
-# 6.e For each map, point .lyr templates in map to new data
+        self.sb.SetStatusText("Updated: " + mxd)
 
-# 6.f Export maps as PDF and JPEG
+# 6.e Export maps as PDF and JPEG
+        pdf_out_dir = self.scenario_dir + "\\PDF"
+        jpeg_out_dir = self.scenario_dir + "\\JPEG"
+
+        arcpy.mapping.ExportToPDF(current_map, pdf_out_dir + "\\" + map_name + ".pdf")
+        arcpy.mapping.ExportToJPEG(current_map, jpeg_out_dir + "\\" + map_name + ".jpeg", resolution=200)
+        self.sb.SetStatusText("Exported: " + map_name)
 
 # 7. View log files if desired
     def __initlogging(self):

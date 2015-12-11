@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 12.09.2015
+# Updated On: 12.11.2015
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -359,6 +359,10 @@ class MainFrame(wx.Frame):
 
         self.update_fc(fc, 'PDsSlightBC')
 
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\BuildingInspectionNeeds.mxd"
+        self.update_and_export_map(mxd)
+
     def direct_economic_loss(self, cursor):
         """This function creates a direct economic loss map by querying the
         eqTractEconLoss table in the SQL Server database."""
@@ -387,6 +391,10 @@ class MainFrame(wx.Frame):
                     urows.updateRow(urow)
 
         self.update_fc(fc, 'TotalEconLoss')
+
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\DirectEconomicLoss.mxd"
+        self.update_and_export_map(mxd)
 
     def estimated_debris(self, cursor):
         """This function creates an estimated debris map by querying the
@@ -419,6 +427,10 @@ class MainFrame(wx.Frame):
                     urows.updateRow(urow)
 
         self.update_fc(fc, 'DebrisTotal')
+
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\EstimatedDebris.mxd"
+        self.update_and_export_map(mxd)
 
     def highway_infrastructure_damage(self, cursor):
         """This function creates a highway Infrastructure damage map by querying
@@ -478,6 +490,10 @@ class MainFrame(wx.Frame):
                     urows.updateRow(urow)
 
         self.update_fc(bridge_fc, 'PDsExceedModerate')
+
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\HighwayInfrastructureDamage.mxd"
+        self.update_and_export_map(mxd)
 
     def impaired_hospitals(self, cursor):
         """This function creates an impaired hospitals map by querying the
@@ -543,6 +559,10 @@ class MainFrame(wx.Frame):
 
         self.update_fc(fc, 'Level1Injury')
 
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\ImpairedHospitals.mxd"
+        self.update_and_export_map(mxd)
+
     def search_and_rescue_needs(self, cursor):
         """This function creates a search and rescue needs map by querying the
         eqTractDmg table in the SQL Server database.  Search and rescue needs are
@@ -573,6 +593,10 @@ class MainFrame(wx.Frame):
                     urows.updateRow(urow)
 
         self.update_fc(fc, 'PDsCompleteBC')
+
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\SearchandRescueNeeds.mxd"
+        self.update_and_export_map(mxd)
 
     def shelter_needs(self, cursor):
         """This function creates a shelter needs map by querying the
@@ -608,6 +632,9 @@ class MainFrame(wx.Frame):
 
         self.update_fc(fc, 'DisplacedHouseholds')
 
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\ShelterNeeds.mxd"
+        self.update_and_export_map(mxd)
 
     def utility_damage(self, cursor):
         """THis function creates a utility damage map by querying the
@@ -696,6 +723,10 @@ class MainFrame(wx.Frame):
 
         self.update_fc(oil_fc, 'PDsExceedModerate')
 
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\UtilityDamage.mxd"
+        self.update_and_export_map(mxd)
+
     def water_infrastructure_damage(self, cursor):
         """This function creates a potable water infrastructure damage map by
         querying the eqPotableWaterDL table in the SQL Server database."""
@@ -732,6 +763,10 @@ class MainFrame(wx.Frame):
 
         self.update_fc(fc, 'TotalDysRepairs')
 
+        # Update and export the map
+        mxd = self.scenario_data_dir + "\\Maps\\UtilityDamage.mxd"
+        self.update_and_export_map(mxd)
+
     def update_fc(self, fc, field):
         """This function updates a feature class that removes all of the records
         from the geodatabase that are not part of the study region.  The fc
@@ -744,7 +779,27 @@ class MainFrame(wx.Frame):
             for urow in urows:
                 urows.deleteRow()
 
-# 6.d Join data to census geography as needed
+# 6.d Update the template mxds with a new extent
+# Map symbology should be set from the template lyr files
+    def update_and_export_map(self, mxd):
+        """This function takes a path to an mxd on disk as input.  Using the
+        arcpy module, it then sets the extent of the data frame to match all of
+        the Census Tracts in the study region.  The map elements are updated to
+        match the author name and reflect any tabular information contained on
+        the map layout."""
+        current_map = arcpy.mapping.MapDocument(mxd)
+        df = arcpy.mapping.ListDataFrames(current_map, "Template_Data")[0]
+
+        # Set the map extent to match the one calculated in the determine_map_extent
+        # function.  Per the ArcGIS doucmentation, copy the existing data frame
+        # extent before modifying it.
+        new_extent = df.extent
+        new_extent.XMin = self.map_extent["XMin"]
+        new_extent.XMax = self.map_extent["XMax"]
+        new_extent.YMin = self.map_extent["YMin"]
+        new_extent.YMax = self.map_extent["YMax"]
+        df.extent = new_extent
+        current_map.save()
 
 # 6.e For each map, point .lyr templates in map to new data
 

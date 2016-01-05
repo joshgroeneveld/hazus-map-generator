@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 12.11.2015
+# Updated On: 01.05.2016
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -687,7 +687,7 @@ class MainFrame(wx.Frame):
         # Update the corresponding fields in the StudyRegionData.mdb\eqNaturalGasFlty table
         ng_fc = self.study_region_data + "\\eqNaturalGasFlty"
         for natural_gas_facility in natural_gas_facilities:
-            natural_gas_flty_id = natural_gas_facility.ElectricPowerFltyID
+            natural_gas_flty_id = natural_gas_facility.NaturalGasFltyID
             natural_gas_flty_moderate = natural_gas_facility.PDsExceedModerate
             natural_gas_flty_funct_day1 = natural_gas_facility.FunctDay1
             natural_gas_flty_econ_loss = natural_gas_facility.EconLoss
@@ -714,7 +714,7 @@ class MainFrame(wx.Frame):
         # Update the corresponding fields in the StudyRegionData.mdb\eqOilFlty table
         oil_fc = self.study_region_data + "\\eqOilFlty"
         for oil_facility in oil_facilities:
-            oil_flty_id = oil_facility.ElectricPowerFltyID
+            oil_flty_id = oil_facility.OilFltyID
             oil_flty_moderate = oil_facility.PDsExceedModerate
             oil_flty_funct_day1 = oil_facility.FunctDay1
             oil_flty_econ_loss = oil_facility.EconLoss
@@ -769,7 +769,7 @@ class MainFrame(wx.Frame):
                     urow[4] = cost
                     urows.updateRow(urow)
 
-        self.update_fc(fc, 'TotalDysRepairs')
+        self.update_fc(fc, 'EconLoss')
 
         # Update and export the map
         mxd = self.scenario_data_dir + "\\Maps\\WaterInfrastructureDamage.mxd"
@@ -800,7 +800,7 @@ class MainFrame(wx.Frame):
         df = arcpy.mapping.ListDataFrames(current_map, "Template_Data")[0]
 
         # Set the map extent to match the one calculated in the determine_map_extent
-        # function.  Per the ArcGIS doucmentation, copy the existing data frame
+        # function.  Per the ArcGIS documentation, copy the existing data frame
         # extent before modifying it.
         new_extent = df.extent
         new_extent.XMin = self.map_extent["XMin"]
@@ -824,7 +824,7 @@ class MainFrame(wx.Frame):
     def __initlogging(self):
         """Initialize a log file to view all of the settings and error information each time
         the script runs."""
-        self.logger = logging.getLogger("SitRepIncidentMapLog")
+        self.logger = logging.getLogger("HAZUSMapCreatorLog")
         self.logger.setLevel(logging.DEBUG)
 
         # Create a file handler

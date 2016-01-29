@@ -21,7 +21,9 @@ import shutil
 import sqlinstances
 import pyodbc
 import inspect
-import arcpy
+from arcpy import mapping
+from arcpy import management
+from arcpy import da
 
 # 1. Initialize wxpython window
 class MainFrame(wx.Frame):
@@ -181,14 +183,14 @@ Select your HAZUS Server and the study region from the list below to get started
         # create a horizontal sizer to hold the Go and Reset buttons
         primary_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
         # add in the buttons
-        self.create_maps = wx.Button(self.main_panel, label="Go!", size=wx.Size(150, 60))
+        self.create_maps = wx.Button(self.main_panel, label="Go!", size=wx.Size(150, 100))
         self.create_maps.SetFont(label_font)
         self.create_maps.SetBackgroundColour(wx.Colour(44,162,95))
         primary_button_sizer.Add(self.create_maps, 0, wx.ALL, 20)
         self.Bind(wx.EVT_BUTTON, self.copy_template, self.create_maps)
 
         # Create a button that resets the form
-        self.reset_button = wx.Button(self.main_panel, label="Reset", size=wx.Size(150, 60))
+        self.reset_button = wx.Button(self.main_panel, label="Reset", size=wx.Size(150, 100))
         self.reset_button.SetFont(label_font)
         primary_button_sizer.Add(self.reset_button, 0, wx.ALL, 20)
         # self.Bind(wx.EVT_BUTTON, self.OnReset, self.resetButton)
@@ -199,9 +201,11 @@ Select your HAZUS Server and the study region from the list below to get started
         box.Add(create_maps_sizer, 2, wx.EXPAND)
         box.Add(primary_button_sizer, 1, wx.EXPAND)
 
+        # Set the panel to be the same size as the main sizer, then set the frame to be the
+        # same size as the panel
         self.main_panel.SetSizerAndFit(box)
-        self.SetAutoLayout(True)
-        self.SetSizerAndFit(box)
+        panel_size = self.main_panel.GetSize()
+        self.SetSize(panel_size)
 
     # 2. Select output directory
     def select_output_directory(self, event):
@@ -361,14 +365,14 @@ Select your HAZUS Server and the study region from the list below to get started
         str_tracts = str_tracts.replace("[", "")
         str_tracts = str_tracts.replace("]", "")
 
-        tract_fc = arcpy.mapping.Layer(self.scenario_data_dir + "\\Data\\TotalEconLoss.lyr")
+        tract_fc = mapping.Layer(self.scenario_data_dir + "\\Data\\TotalEconLoss.lyr")
         out_fl = self.scenario_data_dir + "\\Data\\Selected_Tracts.lyr"
 
-        arcpy.management.MakeFeatureLayer(tract_fc, "temp_lyr")
-        lyr = arcpy.mapping.Layer("temp_lyr")
+        management.MakeFeatureLayer(tract_fc, "temp_lyr")
+        lyr = mapping.Layer("temp_lyr")
         lyr.definitionQuery = "[Tract] in (" + str_tracts + ")"
         lyr.saveACopy(out_fl)
-        selection_layer = arcpy.mapping.Layer(out_fl)
+        selection_layer = mapping.Layer(out_fl)
         # Get extent of feature layer
         tract_extent = selection_layer.getExtent()
         # Return extent out of function as dictionary
@@ -408,7 +412,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[Tract] = ' + '\'' + tract + '\''
             fields = ['PDsSlightBC', 'PDsModerateBC', 'PDsExtensiveBC', 'PDsCompleteBC', 'SL_MO_TOT']
-            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+            with da.UpdateCursor(fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = slight
                     urow[1] = moderate
@@ -446,7 +450,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[Tract] = ' + '\'' + tract + '\''
             fields = ['TotalEconLoss']
-            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+            with da.UpdateCursor(fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = total_econ_loss
                     urows.updateRow(urow)
@@ -481,7 +485,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[Tract] = ' + '\'' + tract + '\''
             fields = ['DebrisS', 'DebrisC', 'DebrisTotal']
-            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+            with da.UpdateCursor(fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = debriss
                     urow[1] = debrisc
@@ -518,7 +522,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[HighwaySegID] = ' + '\'' + highway_id + '\''
             fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
-            with arcpy.da.UpdateCursor(highway_fc, fields, query) as urows:
+            with da.UpdateCursor(highway_fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = highway_moderate
                     urow[1] = highway_functday1
@@ -545,7 +549,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[HighwayBridgeId] = ' + '\'' + bridge_id + '\''
             fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
-            with arcpy.da.UpdateCursor(bridge_fc, fields, query) as urows:
+            with da.UpdateCursor(bridge_fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = bridge_moderate
                     urow[1] = bridge_functday1
@@ -590,7 +594,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[CareFltyId] = ' + '\'' + hospital_id + '\''
             fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
-            with arcpy.da.UpdateCursor(hospital_fc, fields, query) as urows:
+            with da.UpdateCursor(hospital_fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = hospital_moderate
                     urow[1] = hospital_functday1
@@ -612,7 +616,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[Tract] = ' + '\'' + tract + '\''
             fields = ['Level1Injury', 'Level2Injury', 'Level3Injury', 'Level4Injury', 'SUM_2_3']
-            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+            with da.UpdateCursor(fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = level1
                     urow[1] = level2
@@ -652,7 +656,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[Tract] = ' + '\'' + tract + '\''
             fields = ['PDsCompleteBC']
-            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+            with da.UpdateCursor(fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = complete
                     urows.updateRow(urow)
@@ -688,7 +692,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[Tract] = ' + '\'' + tract + '\''
             fields = ['DisplacedHouseholds', 'ShortTermShelter', 'ExposedPeople', 'ExposedValue']
-            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+            with da.UpdateCursor(fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = displaced
                     urow[1] = shelter
@@ -727,7 +731,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[ElectricPowerFltyID] = ' + '\'' + electric_flty_id + '\''
             fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
-            with arcpy.da.UpdateCursor(electric_fc, fields, query) as urows:
+            with da.UpdateCursor(electric_fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = electric_flty_moderate
                     urow[1] = electric_flty_moderate
@@ -754,7 +758,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[NaturalGasFltyID] = ' + '\'' + natural_gas_flty_id + '\''
             fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
-            with arcpy.da.UpdateCursor(ng_fc, fields, query) as urows:
+            with da.UpdateCursor(ng_fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = natural_gas_flty_moderate
                     urow[1] = natural_gas_flty_moderate
@@ -781,7 +785,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[OilFltyID] = ' + '\'' + oil_flty_id + '\''
             fields = ['PDsExceedModerate', 'FunctDay1', 'EconLoss']
-            with arcpy.da.UpdateCursor(oil_fc, fields, query) as urows:
+            with da.UpdateCursor(oil_fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = oil_flty_moderate
                     urow[1] = oil_flty_moderate
@@ -820,7 +824,7 @@ Select your HAZUS Server and the study region from the list below to get started
 
             query = '[Tract] = ' + '\'' + tract + '\''
             fields = ['TotalPipe', 'TotalNumRepairs', 'TotalDysRepairs', 'EconLoss', 'Cost']
-            with arcpy.da.UpdateCursor(fc, fields, query) as urows:
+            with da.UpdateCursor(fc, fields, query) as urows:
                 for urow in urows:
                     urow[0] = total_pipe
                     urow[1] = total_repairs
@@ -844,7 +848,7 @@ Select your HAZUS Server and the study region from the list below to get started
         database.  Records not part of the study region will have a field value
         of NULL."""
         query = '[' + field + '] IS NULL'
-        with arcpy.da.UpdateCursor(fc, '*', query) as urows:
+        with da.UpdateCursor(fc, '*', query) as urows:
             for urow in urows:
                 urows.deleteRow()
 
@@ -856,8 +860,8 @@ Select your HAZUS Server and the study region from the list below to get started
         match all of the Census Tracts in the study region.  The map elements
         are updated to match the author name and reflect any tabular information
         contained on the map layout."""
-        current_map = arcpy.mapping.MapDocument(mxd)
-        df = arcpy.mapping.ListDataFrames(current_map, "Template_Data")[0]
+        current_map = mapping.MapDocument(mxd)
+        df = mapping.ListDataFrames(current_map, "Template_Data")[0]
 
         # Set the map extent to match the one calculated in the determine_map_extent
         # function.  Per the ArcGIS documentation, copy the existing data frame
@@ -876,8 +880,8 @@ Select your HAZUS Server and the study region from the list below to get started
         pdf_out_dir = self.scenario_dir + "\\PDF"
         jpeg_out_dir = self.scenario_dir + "\\JPEG"
 
-        arcpy.mapping.ExportToPDF(current_map, pdf_out_dir + "\\" + map_name + ".pdf")
-        arcpy.mapping.ExportToJPEG(current_map, jpeg_out_dir + "\\" + map_name + ".jpeg", resolution=200)
+        mapping.ExportToPDF(current_map, pdf_out_dir + "\\" + map_name + ".pdf")
+        mapping.ExportToJPEG(current_map, jpeg_out_dir + "\\" + map_name + ".jpeg", resolution=200)
         self.sb.SetStatusText("Exported: " + map_name)
 
 # 7. View log files if desired

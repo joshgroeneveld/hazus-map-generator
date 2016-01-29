@@ -5,7 +5,7 @@
 
 # Author: Josh Groeneveld
 # Created On: 05.21.2015
-# Updated On: 01.05.2016
+# Updated On: 01.29.2016
 # Copyright: 2015
 
 """NOTES: This script must be able to access the SQL Server instance that
@@ -28,75 +28,115 @@ class MainFrame(wx.Frame):
     logfile = None
 
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, size=wx.Size(520, 710))
+        wx.Frame.__init__(self, parent, size=wx.Size(-1, -1))
 
         if self.logfile is None:
             self.logfile = 'C:\\Temp\\HAZUS_Map_Generator_Log.txt'
 
         self.__initlogging()
 
-        self.mainPanel = wx.Panel(self)
+        self.main_panel = wx.Panel(self, wx.ID_ANY)
 
         self.SetTitle("HAZUS Map Generator version 0.1.0")
 
         self.sb = self.CreateStatusBar()
-        self.sb.SetStatusText("Please select your output directory.")
+        self.sb.SetStatusText("Please select a folder to store your maps.")
         self.logger.info("Script initiated")
 
+        label_font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
+        label_font.MakeBold()
+        label_font.SetPointSize(14)
+
+        normal_font = wx.Font(10, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+
+        box = wx.BoxSizer(wx.VERTICAL)
+
         # the welcome box
-        self.welcome_sizerbox = wx.StaticBox(self.mainPanel, -1, "Welcome to the HAZUS Map Generator",
-                                                pos=wx.Point(8, 6), size=wx.Size(476, 105))
+        welcome_staticbox = wx.StaticBox(self.main_panel, -1, "Welcome!", size=(-1, -1))
+        welcome_staticbox.SetOwnFont(label_font)
 
-        # the file picker box
-        self.output_directory_staticbox = wx.StaticBox(self.mainPanel, -1, "Choose the output directory",
-                                                pos=wx.Point(8, 120), size=wx.Size(476, 55))
-
-        # the server info box
-        self.serverinfo_staticbox = wx.StaticBox(self.mainPanel, -1, "Server Information",
-                                                pos=wx.Point(8, 185), size=wx.Size(476, 340))
-
-        # the create maps box
-        self.create_maps_staticbox = wx.StaticBox(self.mainPanel, -1, "Create the selected maps",
-                                                pos=wx.Point(8, 535), size=wx.Size(476, 100))
+        welcome_sizer = wx.StaticBoxSizer(welcome_staticbox)
 
         # welcome text
-        welcomemessage = "The HAZUS Map Generator creates a series of maps of your choice based on a HAZUS analysis." \
-                         "  This tool assumes that you already have a HAZUS study region and that HAZUS has already" \
-                         " finished analyzing the hazards in your study region.  Select your HAZUS Server and the" \
-                         " study region from the list below to get started."
+        welcomemessage = """The HAZUS Map Generator creates a series of maps of your choice based on a HAZUS analysis.
+This tool assumes that you already have a HAZUS study region and that HAZUS has already finished analyzing the hazards in your study region.
+Select your HAZUS Server and the study region from the list below to get started."""
 
-        self.welcome_label = wx.StaticText(self.mainPanel, -1, welcomemessage, pos=wx.Point(20, 30),
-                                          size=wx.Size(460, 75))
+        welcome_text = wx.StaticText(self.main_panel, -1, welcomemessage)
+        welcome_text.SetFont(normal_font)
+        welcome_sizer.Add(welcome_text)
+
+        # the output folder picker box
+        output_directory_staticbox = wx.StaticBox(self.main_panel, -1, "Select a folder to store the maps", size=(-1, -1))
+        output_directory_staticbox.SetOwnFont(label_font)
+
+        output_directory_sizer = wx.StaticBoxSizer(output_directory_staticbox)
 
         # Set up the menu to choose a directory from the system
-        self.output_directory_dialog_button = wx.Button(self.mainPanel, label="Choose Output Directory",
-                                                        pos=wx.Point(20, 140), size=wx.Size(200, -1))
+        self.output_directory_dialog_button = wx.Button(output_directory_staticbox, label="Browse...", size=wx.Size(-1, -1))
+        self.output_directory_dialog_button.SetFont(normal_font)
+        output_directory_sizer.Add(self.output_directory_dialog_button)
         self.output_directory = ""
         self.scenario_dir = ""
         self.scenario_data_dir = ""
         self.study_region_data = ""
         self.output_directory_dialog_button.Bind(wx.EVT_BUTTON, self.select_output_directory)
 
-        # Create an drop down menu to select the name of the HAZUS Server
-        self.hazus_server_label = wx.StaticText(self.mainPanel, -1, "Select your HAZUS Server", pos=wx.Point(20, 210))
+        # the server and database info box
+        self.serverinfo_staticbox = wx.StaticBox(self.main_panel, -1, "Server Information and Database Information", size=(-1, -1))
+        self.serverinfo_staticbox.SetOwnFont(label_font)
+        server_and_db_sizer = wx.StaticBoxSizer(self.serverinfo_staticbox, orient=wx.VERTICAL)
+
+        # Create a drop down menu to select the name of the HAZUS Server
+        server_box = wx.BoxSizer(wx.HORIZONTAL)
+        server_and_db_sizer.Add(server_box)
+        self.hazus_server_label = wx.StaticText(server_and_db_sizer.GetStaticBox(), -1, "Select your HAZUS Server")
+        self.hazus_server_label.SetFont(normal_font)
+        server_box.Add(self.hazus_server_label)
+        server_box.Add(wx.Size(20, 10))
         self.hazus_server_choices = ["Server 1", "Server 2"]
 
-        self.hazus_server_list = wx.ComboBox(self.mainPanel, -1, "", choices=self.hazus_server_choices,
-                                             pos=wx.Point(175, 210), size=wx.Size(250, 25))
+        self.hazus_server_list = wx.ComboBox(self.serverinfo_staticbox, -1, "", choices=self.hazus_server_choices, size=wx.Size(300, -1))
+        self.hazus_server_list.SetFont(normal_font)
+        server_box.Add(self.hazus_server_list)
         self.hazus_server = ""
-
         self.hazus_server_list.Bind(wx.EVT_COMBOBOX, self.select_hazus_server)
 
-        # Create a drop down menu to select the HAZUS Study Region
-        self.hazus_db_list = wx.StaticText(self.mainPanel, -1, "Select your Study Region", pos=wx.Point(20, 245))
-        self.db_choices = ["Study Region 1", "Study Region 2"]
-        self.db_list = wx.ComboBox(self.mainPanel, -1, "", choices=self.db_choices,
-                                          pos=wx.Point(175, 245), size=wx.Size(250, 25))
-        self.hazus_db = ""
+        # the database info sizer -- nests under the server and database info box
+        database_box = wx.BoxSizer(wx.HORIZONTAL)
+        server_and_db_sizer.Add(database_box)
 
-        self.map_selection_label = wx.StaticText(self.mainPanel, -1, "Select the maps to create",
-                                             pos=wx.Point(20, 280), size=wx.Size(300, 25))
+        # Create a drop down menu to select the HAZUS Study Region
+        self.hazus_db_list = wx.StaticText(server_and_db_sizer.GetStaticBox(), -1, "Select your Study Region")
+        self.hazus_db_list.SetFont(normal_font)
+        database_box.Add(self.hazus_db_list)
+        database_box.Add(wx.Size(20, 10))
+        self.db_choices = ["Study Region 1", "Study Region 2"]
+        self.db_list = wx.ComboBox(self.serverinfo_staticbox, -1, "", choices=self.db_choices, size=wx.Size(300, -1))
+        self.db_list.SetFont(normal_font)
+        database_box.Add(self.db_list)
+        self.hazus_db = ""
         self.db_list.Bind(wx.EVT_COMBOBOX, self.select_hazus_db)
+
+        # the create maps box
+        self.create_maps_staticbox = wx.StaticBox(self.main_panel, -1, "Choose your maps", size=wx.Size(-1, -1))
+        self.create_maps_staticbox.SetFont(normal_font)
+        self.create_maps_staticbox.SetOwnFont(label_font)
+        create_maps_sizer = wx.StaticBoxSizer(self.create_maps_staticbox, orient=wx.HORIZONTAL)
+        maps_to_select_box = wx.BoxSizer(wx.VERTICAL)
+        map_selection_buttons = wx.BoxSizer(wx.VERTICAL)
+        selected_maps_box = wx.BoxSizer(wx.VERTICAL)
+
+        # add the three vertical sizers to the horizontal container sizer
+        create_maps_sizer.Add(maps_to_select_box)
+        create_maps_sizer.Add(map_selection_buttons, 0, wx.ALL | wx.CENTER, 30)
+        create_maps_sizer.Add(selected_maps_box)
+
+        # add static text and a list box to the maps to select sizer
+        self.map_selection_label = wx.StaticText(create_maps_sizer.GetStaticBox(), -1, "Select the maps to create")
+        self.map_selection_label.SetFont(normal_font)
+        maps_to_select_box.Add(self.map_selection_label)
+        maps_to_select_box.Add(wx.Size(20, 10))
 
         # Create a list box with all of the potential maps that the user can select
         self.map_choices = ["Direct Economic Loss", "Shelter Needs", "Utility Damage",
@@ -104,18 +144,33 @@ class MainFrame(wx.Frame):
                             "Highway Infrastructure Damage", "Impaired Hospitals", "Water Infrastructure Damage",
                             "Search and Rescue Needs"]
 
-        self.map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(20, 305), choices=self.map_choices,
-                                   size=wx.Size(175, 200), style=wx.LB_EXTENDED | wx.LB_SORT)
+        self.map_list = wx.ListBox(create_maps_sizer.GetStaticBox(), -1, choices=self.map_choices, size=wx.Size(-1, -1), style=wx.LB_EXTENDED | wx.LB_SORT)
+        self.map_list.SetFont(normal_font)
+        maps_to_select_box.Add(self.map_list)
+        maps_to_select_size = self.map_list.GetSize()
 
-        # Create a list box to show the selected maps
-        self.selected_map_label = wx.StaticText(self.mainPanel, -1, "Selected maps", pos=wx.Point(300, 280),
-                                                size=wx.Size(300, 25))
+        # add buttons for the user to add and remove maps from the current selection
+        self.add_maps_to_selection = wx.Button(self.create_maps_staticbox, label="Add -->", size=wx.Size(-1, -1))
+        self.add_maps_to_selection.SetFont(normal_font)
+        self.remove_maps_from_selection = wx.Button(self.create_maps_staticbox, label="Remove <--", size=wx.Size(-1, -1))
+        self.remove_maps_from_selection.SetFont(normal_font)
+        map_selection_buttons.Add(self.add_maps_to_selection)
+        map_selection_buttons.Add(wx.Size(20, 10))
+        map_selection_buttons.Add(self.remove_maps_from_selection)
+        self.add_maps_to_selection.Bind(wx.EVT_BUTTON, self.select_maps)
+        self.remove_maps_from_selection.Bind(wx.EVT_BUTTON, self.deselect_maps)
+
+        # add static text and a list box to the selected maps sizer
+        self.selected_map_label = wx.StaticText(create_maps_sizer.GetStaticBox(), -1, "Selected maps")
+        self.selected_map_label.SetFont(normal_font)
+        selected_maps_box.Add(self.selected_map_label)
+        selected_maps_box.Add(wx.Size(20, 10))
 
         self.selected_map_choices = []
         self.selected_maps = []
-        self.selected_map_list = wx.ListBox(self.mainPanel, -1, pos=wx.Point(300, 305),
-                                            style=wx.LB_EXTENDED | wx.LB_SORT, choices=self.selected_map_choices,
-                                            size=wx.Size(175, 200))
+        self.selected_map_list = wx.ListBox(create_maps_sizer.GetStaticBox(), -1, style=wx.LB_EXTENDED | wx.LB_SORT, choices=self.selected_map_choices, size=maps_to_select_size)
+        self.selected_map_list.SetFont(normal_font)
+        selected_maps_box.Add(self.selected_map_list)
         self.deselect_map_choices = []
         self.map_extent = {}
 
@@ -123,25 +178,30 @@ class MainFrame(wx.Frame):
         self.map_list.Disable()
         self.selected_map_list.Disable()
 
-        # Create buttons to add maps to the selected list or remove them
-        self.add_maps_to_selection = wx.Button(self.mainPanel, label="Add -->", pos=wx.Point(210, 350),
-                                               size=wx.Size(80, 60))
-        self.add_maps_to_selection.Bind(wx.EVT_BUTTON, self.select_maps)
-
-        self.remove_maps_from_selection = wx.Button(self.mainPanel, label="Remove <--", pos=wx.Point(210, 420),
-                                                    size=wx.Size(80, 60))
-        self.remove_maps_from_selection.Bind(wx.EVT_BUTTON, self.deselect_maps)
-
-        # Create a button that runs the script
-        self.create_maps = wx.Button(self.mainPanel, label="Go!", pos=wx.Point(20, 560),
-                                        size=wx.Size(150, 60))
+        # create a horizontal sizer to hold the Go and Reset buttons
+        primary_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # add in the buttons
+        self.create_maps = wx.Button(self.main_panel, label="Go!", size=wx.Size(150, 60))
+        self.create_maps.SetFont(label_font)
+        self.create_maps.SetBackgroundColour(wx.Colour(44,162,95))
+        primary_button_sizer.Add(self.create_maps, 0, wx.ALL, 20)
         self.Bind(wx.EVT_BUTTON, self.copy_template, self.create_maps)
 
         # Create a button that resets the form
-        self.reset_button = wx.Button(self.mainPanel, label="Reset", pos=wx.Point(200, 560), size=wx.Size(150, 60))
+        self.reset_button = wx.Button(self.main_panel, label="Reset", size=wx.Size(150, 60))
+        self.reset_button.SetFont(label_font)
+        primary_button_sizer.Add(self.reset_button, 0, wx.ALL, 20)
         # self.Bind(wx.EVT_BUTTON, self.OnReset, self.resetButton)
 
-        self.Show()
+        box.Add(welcome_sizer, 0.5, wx.EXPAND)
+        box.Add(output_directory_sizer, 0.5, wx.EXPAND)
+        box.Add(server_and_db_sizer, 0.5, wx.EXPAND)
+        box.Add(create_maps_sizer, 2, wx.EXPAND)
+        box.Add(primary_button_sizer, 1, wx.EXPAND)
+
+        self.main_panel.SetSizerAndFit(box)
+        self.SetAutoLayout(True)
+        self.SetSizerAndFit(box)
 
     # 2. Select output directory
     def select_output_directory(self, event):
@@ -839,8 +899,9 @@ class MainFrame(wx.Frame):
         self.logger.addHandler(ch)
 
 try:
-    app = wx.App(False)
-    MainFrame(None)
+    app = wx.App()
+    frame = MainFrame(None)
+    frame.Show()
     app.MainLoop()
 
 except:
